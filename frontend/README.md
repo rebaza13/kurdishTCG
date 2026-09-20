@@ -16,8 +16,9 @@ npm run dev
 Open <http://localhost:3000> — it redirects to `/en`, `/ar` or `/ckb` depending on
 your browser's language.
 
-`.env.local` already has the public Supabase URL and anon key checked out for local
-dev (see `.env.example` for the shape). Never put the service role key in this app.
+Create `.env.local` with `NEXT_PUBLIC_SUPABASE_URL` and
+`NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` (same shape as `../dashboard/.env.example`).
+Never put the service role key in this app.
 
 ## Structure
 
@@ -33,9 +34,7 @@ dev (see `.env.example` for the shape). Never put the service role key in this a
 - `src/app/globals.css` — the two design systems (light "Storefront", dark "Neon
   Vault") as one semantic token set
 
-## Test accounts
+## Accounts
 
-```
-admin@kurdishtcg.test    / TestAdmin123!     (role: admin)
-customer@kurdishtcg.test / TestCustomer123!  (role: customer)
-```
+Create a customer account from `/account`. To make someone an admin, run
+`../supabase/make-admin.sql` against the Supabase project. Never commit credentials.

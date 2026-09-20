@@ -12,8 +12,10 @@ _Goal: repo root = the project. `frontend/` and `dashboard/` sit directly under 
 - [x] `context.md` moved to repo root; root `README.md` added; docs updated to the new paths
 - [x] `packages/types` recreated (`@tcg/types`) — it was imported everywhere but never committed, so a fresh clone did not typecheck
 - [x] `turbopack.root` set in both `next.config.ts` so the shared package resolves
-- [ ] Delete the empty leftover `apps/` folder (Windows locks it while Claude Code runs from it — close the session, then delete)
-- [?] Commit + push the new layout (not done — waiting on you)
+- [x] Deleted the empty leftover `apps/` folder
+- [x] New layout committed and pushed to `origin/main`
+- [x] Removed test-account credentials from `frontend/README.md` (repo is public)
+- [?] **Rotate/delete the `admin@kurdishtcg.test` and `customer@kurdishtcg.test` accounts in Supabase** — their passwords are in git history
 
 ## 2. Storefront (`frontend/`)
 _Customer site: browse → cart → checkout → account. Next.js 16, next-intl (en / ar / ckb)._

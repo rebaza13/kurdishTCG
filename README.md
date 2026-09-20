@@ -18,4 +18,17 @@ cd frontend  && npm install && npm run dev   # storefront
 cd dashboard && npm install && npm run dev   # admin
 ```
 
+## Deploying to Vercel
+
+Two separate Vercel projects from this one repo (there is no root `package.json`):
+
+| Project | Root Directory | Env vars |
+| --- | --- | --- |
+| Storefront | `frontend` | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` |
+| Admin | `dashboard` | same two |
+
+In each project's **Settings → General → Root Directory**, keep **"Include source files
+outside of the Root Directory in the Build Step"** enabled — both apps import
+`../packages/types`. Framework preset: Next.js; build/install commands are the defaults.
+
 More: [`context.md`](context.md) (product/tech decisions) · [`TODO.md`](TODO.md) (status).
