@@ -44,13 +44,13 @@ export default async function ProductDetailPage({
         <span className="text-[var(--color-text)]">{product.name}</span>
       </nav>
 
-      <div className="grid md:grid-cols-2 gap-10 md:gap-16">
-        <div className="relative mx-auto w-full max-w-[340px] md:max-w-none aspect-[3/4] overflow-hidden bg-[var(--color-neutral-200)] rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)]">
+      <div className="grid md:grid-cols-[minmax(0,400px)_1fr] gap-10 md:gap-16 lg:gap-24 md:items-start">
+        <div className="relative mx-auto w-full max-w-[340px] md:max-w-none aspect-[5/7] overflow-hidden bg-[var(--color-neutral-200)] rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)]">
           <Image
             src={product.image}
             alt={product.name}
             fill
-            sizes="(max-width: 768px) 100vw, 45vw"
+            sizes="(max-width: 768px) 340px, 400px"
             className="object-cover"
             priority
           />
