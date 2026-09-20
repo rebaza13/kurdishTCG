@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
@@ -10,10 +10,14 @@ import {
   spaceGrotesk,
 } from "@/app/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
+import { BottomNav } from "@/components/bottom-nav";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
 import { locales, localeDirection, type Locale } from "@/i18n/routing";
 import "@/app/globals.css";
+
+// `cover` lets the bottom nav read env(safe-area-inset-bottom) on notched iPhones/iPads.
+export const viewport: Viewport = { viewportFit: "cover" };
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -55,11 +59,13 @@ export default async function LocaleLayout({
       <body className="font-body antialiased">
         <ThemeProvider>
           <NextIntlClientProvider>
-            <div className="flex min-h-screen flex-col">
+            {/* pb clears the floating <BottomNav /> (phone + tablet only) */}
+            <div className="flex min-h-screen flex-col pb-[calc(6rem+env(safe-area-inset-bottom))] xl:pb-0">
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />
             </div>
+            <BottomNav />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

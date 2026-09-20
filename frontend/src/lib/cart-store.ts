@@ -1,5 +1,6 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, Product } from "@tcg/types";
@@ -77,4 +78,17 @@ export function cartSubtotal(items: CartItem[]): number {
 
 export function cartCount(items: CartItem[]): number {
   return items.reduce((sum, i) => sum + i.quantity, 0);
+}
+
+const noopSubscribe = () => () => {};
+
+/**
+ * Cart quantity that is 0 during SSR and the first client render, then the
+ * persisted value. The cart lives in localStorage, so reading it straight
+ * away would mismatch the server HTML.
+ */
+export function useCartCount(): number {
+  const hydrated = useSyncExternalStore(noopSubscribe, () => true, () => false);
+  const items = useCartStore((s) => s.items);
+  return hydrated ? cartCount(items) : 0;
 }

@@ -7,21 +7,33 @@ import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
-import { cartCount, cartSubtotal, useCartStore } from "@/lib/cart-store";
+import { cartSubtotal, useCartCount, useCartStore } from "@/lib/cart-store";
 
-export function CartDrawer() {
-  const { items, isOpen, close, toggle, setQuantity, removeItem } = useCartStore();
+/** Desktop header trigger. The drawer itself is mounted once, in `Header`. */
+export function CartButton() {
+  const toggle = useCartStore((s) => s.toggle);
   const t = useTranslations("cart");
-  const count = cartCount(items);
+  const count = useCartCount();
+
+  return (
+    <Button type="button" variant="secondary" size="md" onClick={toggle}>
+      <ShoppingBag className="size-4" />
+      {t("title")} {count > 0 ? `· ${count}` : ""}
+    </Button>
+  );
+}
+
+/**
+ * Mount exactly once: it is controlled by the cart store, and every trigger
+ * (header button, mobile bottom nav, add-to-cart) just flips that state.
+ * Two mounted copies would open two stacked dialogs at the same time.
+ */
+export function CartDrawer() {
+  const { items, isOpen, close, setQuantity, removeItem } = useCartStore();
+  const t = useTranslations("cart");
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => (open ? undefined : close())}>
-      <Dialog.Trigger asChild>
-        <Button type="button" variant="secondary" size="md" onClick={toggle}>
-          <ShoppingBag className="size-4" />
-          {t("title")} {count > 0 ? `· ${count}` : ""}
-        </Button>
-      </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
         <Dialog.Content
@@ -104,7 +116,7 @@ export function CartDrawer() {
                   </div>
                 ))}
               </div>
-              <div className="border-t-[length:var(--border-width)] border-[var(--color-border)] p-5 flex flex-col gap-3">
+              <div className="border-t-[length:var(--border-width)] border-[var(--color-border)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] flex flex-col gap-3">
                 <div className="flex items-center justify-between">
                   <span className="font-heading font-[var(--font-heading-weight)]">
                     {t("subtotal")}

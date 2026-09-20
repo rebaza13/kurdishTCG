@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { FranchiseCard } from "@/components/franchise-card";
+import { FranchiseTile } from "@/components/franchise-tile";
 import { HeroCardStage } from "@/components/hero-card-stage";
 import { ProductCard } from "@/components/product-card";
 import { getFeaturedProducts, getFranchises } from "@/lib/data";
@@ -65,21 +65,29 @@ export default async function HomePage({
 
       {/* Franchises */}
       <section className="border-b-[length:var(--border-width)] border-[var(--color-border-strong)]">
-        <div className="mx-auto max-w-[1440px] px-4 py-16 md:px-10">
-          <div className="flex items-end justify-between gap-6 mb-8">
-            <div className="flex flex-col gap-2">
+        <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 md:py-14">
+          <div className="flex items-end justify-between gap-6 mb-5 md:mb-6">
+            <div className="flex flex-col gap-1.5">
               <span className="text-xs uppercase tracking-[0.16em] text-[var(--color-text-muted)] font-heading font-[var(--font-heading-weight)]">
                 {t("franchisesKicker")}
               </span>
               <h2 className="text-2xl md:text-3xl">{t("franchisesTitle")}</h2>
             </div>
-            <Link href="/franchises" className="hidden md:block">
-              <Button variant="outline">{t("viewAll")}</Button>
+            <Link
+              href="/franchises"
+              className="shrink-0 text-sm font-heading font-[var(--font-heading-weight)] text-[var(--color-accent)] hover:underline underline-offset-4"
+            >
+              {t("viewAll")}
             </Link>
           </div>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {/* Swipeable rail: bleeds to the screen edge so it's obvious there's more */}
+          <div className="-mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-px-4 px-4 pb-3 md:-mx-10 md:scroll-px-10 md:px-10 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {franchises.map((f) => (
-              <FranchiseCard key={f.slug} franchise={f} />
+              <FranchiseTile
+                key={f.slug}
+                franchise={f}
+                className="w-[152px] snap-start sm:w-[190px] lg:w-[220px]"
+              />
             ))}
           </div>
         </div>
