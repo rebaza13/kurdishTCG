@@ -18,12 +18,13 @@ const RIGHT_TABS: Tab[] = [
 ];
 
 const itemClass =
-  "relative flex flex-1 flex-col items-center justify-center gap-0.5 text-[10px] font-heading font-[var(--font-heading-weight)] leading-none transition-colors";
+  "relative flex flex-1 flex-col items-center justify-center gap-1 text-[10px] font-heading font-[var(--font-heading-weight)] leading-none transition-colors";
 
 /**
  * Phone + tablet navigation (hidden from `lg`, where the top header takes
  * over). A frosted floating bar: the page scrolls underneath it, the cart
- * sits raised in the middle with a live count.
+ * sits raised in the middle with a live count. The active tab is marked by
+ * a plain color change on the icon + label — no background shape.
  */
 export function BottomNav() {
   const t = useTranslations("nav");
@@ -34,6 +35,7 @@ export function BottomNav() {
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+  const cartActive = cartOpen || isActive("/cart");
 
   const renderTab = (item: Tab) => (
     <NavTab
@@ -58,7 +60,7 @@ export function BottomNav() {
           onClick={toggleCart}
           aria-label={t("cart")}
           aria-expanded={cartOpen}
-          className={cn(itemClass, "cursor-pointer", cartOpen ? "text-[var(--color-accent)]" : "text-[var(--color-text)]")}
+          className={cn(itemClass, "cursor-pointer", cartActive ? "text-[var(--color-accent)]" : "text-[var(--color-text)]")}
         >
           <span className="relative -mt-6 grid size-14 place-items-center rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-bg)] text-[var(--color-accent-ink)] shadow-[var(--shadow-md)] [background:var(--gradient-primary)] transition-transform active:scale-95">
             <ShoppingBag className="size-6" strokeWidth={2.2} />
@@ -68,7 +70,7 @@ export function BottomNav() {
               </span>
             )}
           </span>
-          <span className="mt-1">{t("cart")}</span>
+          <span>{t("cart")}</span>
         </button>
 
         {RIGHT_TABS.map(renderTab)}
@@ -94,18 +96,10 @@ function NavTab({
       aria-current={active ? "page" : undefined}
       className={cn(
         itemClass,
-        "gap-1",
         active ? "text-[var(--color-accent)]" : "text-[var(--color-text-muted)] hover:text-[var(--color-text)]"
       )}
     >
-      <span
-        className={cn(
-          "grid h-8 w-14 place-items-center rounded-[var(--radius-full)] transition-colors",
-          active && "bg-[color-mix(in_srgb,var(--color-accent)_14%,transparent)]"
-        )}
-      >
-        <Icon className="size-[22px]" strokeWidth={active ? 2.4 : 1.8} />
-      </span>
+      <Icon className="size-[22px]" strokeWidth={active ? 2.2 : 1.8} />
       {label}
     </Link>
   );

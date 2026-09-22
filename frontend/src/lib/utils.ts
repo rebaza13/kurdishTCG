@@ -5,6 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
+/** Main image first, then any distinct extras — dedupes so a gallery never repeats a shot. */
+export function buildGalleryImages(main: string, extra: string[]): string[] {
+  const seen = new Set<string>([main]);
+  const rest = extra.filter((src) => {
+    if (seen.has(src)) return false;
+    seen.add(src);
+    return true;
+  });
+  return [main, ...rest];
+}
+
 const ARABIC_INDIC_DIGITS = "٠١٢٣٤٥٦٧٨٩";
 
 // The shop sells in Iraqi dinars only, in whole dinars (no decimals).

@@ -10,9 +10,9 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/franchises/${product.franchise}/${product.slug}`}
-      className="group flex flex-col gap-2.5 border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-3 rounded-[var(--radius-md)] transition-colors hover:border-[var(--color-border-strong)]"
+      className="group flex flex-col gap-2.5 border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-3 rounded-[var(--radius-md)] transition-[border-color,box-shadow,transform] duration-200 hover:border-[var(--color-border-strong)] hover:shadow-[var(--shadow-md)] active:scale-[0.98]"
     >
-      <div className="relative aspect-[3/4] overflow-hidden rounded-[var(--radius-xs)] bg-[var(--color-neutral-200)]">
+      <div className="relative aspect-[5/7] overflow-hidden rounded-[var(--radius-xs)] bg-[var(--color-neutral-200)]">
         <Image
           src={product.image}
           alt={product.name}

@@ -82,8 +82,7 @@ export function HeroCardStage({ cards, caption }: { cards: Product[]; caption: s
 
       <Link href={href} className="hero-card" ref={cardRef} aria-label={main.name}>
         <div className="hero-card__tilt">
-         <div className="hero-card__flip">
-          <div className="hero-card__face hero-card__face--front">
+          <div className="hero-card__face">
             <Image
               src={main.image}
               alt={main.name}
@@ -95,12 +94,6 @@ export function HeroCardStage({ cards, caption }: { cards: Product[]; caption: s
             <div className="hero-card__holo" aria-hidden />
             <div className="hero-card__glare" aria-hidden />
           </div>
-          <div className="hero-card__face hero-card__face--back" aria-hidden>
-            <div className="hero-card__back-ring">
-              <span className="hero-card__back-mark">KurdishTCG</span>
-            </div>
-          </div>
-         </div>
         </div>
       </Link>
 
