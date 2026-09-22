@@ -7,7 +7,7 @@ import { ArrowLeft } from "lucide-react";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { slugify } from "@/lib/format";
-import { ImageField } from "@/components/image-upload";
+import { ImageField, isAllowedProductImageHost } from "@/components/image-upload";
 import { LocalizedField, type LangKey } from "@/components/localized-fields";
 import {
   Button,
@@ -82,6 +82,8 @@ function toRow(f: FormState): FranchiseRow | string {
   }
   if (!f.accent.trim()) return "Accent colour is required.";
   if (!f.image.trim()) return "Add an image.";
+  if (!isAllowedProductImageHost(f.image.trim()))
+    return "Image must be uploaded (or a link to it) — pasted links from other sites aren't shown on the storefront and would break this franchise's page.";
   if (!Number.isInteger(sort)) return "Sort order must be a whole number.";
   return {
     slug: f.slug,

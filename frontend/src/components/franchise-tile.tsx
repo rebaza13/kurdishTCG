@@ -45,14 +45,18 @@ export function FranchiseTile({
       </div>
       <div className="flex flex-col gap-0.5 px-3 py-2.5">
         <h3 className="truncate text-[15px] leading-tight">{franchise.name}</h3>
-        <p className="flex items-baseline gap-1 truncate text-[11px] text-[var(--color-text-muted)]">
-          <span>
-            {franchise.cardCount} {t("cards")}
-          </span>
-          <span aria-hidden>·</span>
-          <span>{t("from")}</span>
-          <PriceTag value={franchise.fromPrice} className="text-[11px] text-[var(--color-text)]" />
-        </p>
+        {franchise.cardCount > 0 ? (
+          <p className="flex items-baseline gap-1 truncate text-[11px] text-[var(--color-text-muted)]">
+            <span>
+              {franchise.cardCount} {t("cards")}
+            </span>
+            <span aria-hidden>·</span>
+            <span>{t("from")}</span>
+            <PriceTag value={franchise.fromPrice} className="text-[11px] text-[var(--color-text)]" />
+          </p>
+        ) : (
+          <p className="truncate text-[11px] text-[var(--color-text-muted)]">{t("outOfStock")}</p>
+        )}
       </div>
     </Link>
   );

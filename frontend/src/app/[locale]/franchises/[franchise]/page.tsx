@@ -127,7 +127,9 @@ export default async function FranchiseListingPage({
           </p>
 
           {result.items.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)] py-10">{t("noResults")}</p>
+            <p className="text-sm text-[var(--color-text-muted)] py-10">
+              {franchiseData.cardCount === 0 ? t("noProductsYet") : t("noResults")}
+            </p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {result.items.map((p) => (

@@ -98,7 +98,8 @@ export function CartDrawer() {
                           <button
                             type="button"
                             aria-label="Increase quantity"
-                            className="p-1.5 cursor-pointer"
+                            className="p-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
+                            disabled={item.quantity >= item.stock}
                             onClick={() => setQuantity(item.productId, item.quantity + 1)}
                           >
                             <Plus className="size-3" />

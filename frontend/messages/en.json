@@ -26,7 +26,7 @@
   "home": {
     "heroKicker": "New drops weekly",
     "heroTitle": "Every pack could be the pull.",
-    "heroTitleSecondary": "Sealed boxes to single cards, priced in dinars.",
+    "heroTitleSecondary": "Sealed boxes and booster packs, priced in dinars.",
     "heroSubtitle": "Riftbound, Naruto, Disney Lorcana, Avatar, SpongeBob and Zootopia — sourced and shipped from Erbil.",
     "shopNow": "Shop new arrivals",
     "browseFranchises": "Browse franchises",
@@ -51,6 +51,7 @@
     "cards": "items",
     "sets": "sets",
     "from": "from",
+    "outOfStock": "Restocking soon",
     "comingSoonTitle": "More franchises are on the way.",
     "comingSoonBody": "We're onboarding new franchises as new stock comes in — join the list to hear first."
   },
@@ -60,6 +61,7 @@
     "priceRange": "Price range",
     "set": "Set",
     "sortBy": "Sort by",
+    "noProductsYet": "New stock for this franchise is on the way — check back soon.",
     "sortNewest": "Newest",
     "sortPriceAsc": "Price: low to high",
     "sortPriceDesc": "Price: high to low",
@@ -222,7 +224,7 @@
   "aboutPage": {
     "kicker": "About us",
     "title": "Real cards, shipped from Erbil.",
-    "p1": "KurdishTCG is an online shop for sealed trading card releases — Riftbound, Naruto, Disney Lorcana, Avatar: The Last Airbender, SpongeBob and Zootopia — plus the odd single pulled from real product.",
+    "p1": "KurdishTCG is an online shop for sealed trading card releases — booster packs and boxes from Riftbound, Naruto, Disney Lorcana, Avatar: The Last Airbender, SpongeBob and Zootopia.",
     "p2": "Every listing is photographed from the actual box, pack or card on our shelf, not a stock photo. New stock is sourced and shipped from Erbil to anywhere in Iraq.",
     "p3": "Pay cash on delivery, or instantly online with FIB. The site runs in English, Arabic and Kurdish (Sorani), so browse in whichever you're comfortable with.",
     "cta": "Shop new arrivals"

@@ -112,7 +112,13 @@ const RARITY_RANK: Record<string, number> = {
 
 async function fetchAllProducts(): Promise<ProductRow[]> {
   const supabase = getSupabaseClient();
-  const { data, error } = await supabase.from("products").select("*");
+  // Storefront sells sealed packs/boxes only for now — single cards stay in
+  // the database (a future card marketplace may use them) but are hidden
+  // from every customer-facing listing.
+  const { data, error } = await supabase
+    .from("products")
+    .select("*")
+    .neq("product_type", "single_card");
   if (error) throw error;
   return (data ?? []) as ProductRow[];
 }
@@ -250,6 +256,7 @@ export async function getProductBySlug(
     .select("*")
     .eq("franchise_slug", franchise)
     .eq("slug", slug)
+    .neq("product_type", "single_card")
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;

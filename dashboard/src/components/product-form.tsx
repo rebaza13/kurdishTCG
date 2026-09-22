@@ -8,7 +8,7 @@ import type { ProductType, Rarity } from "@tcg/types";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL, RARITIES, slugify } from "@/lib/format";
-import { GalleryField, ImageField } from "@/components/image-upload";
+import { GalleryField, ImageField, isAllowedProductImageHost } from "@/components/image-upload";
 import { LocalizedField, type LangKey } from "@/components/localized-fields";
 import {
   Button,
@@ -118,6 +118,10 @@ function toPayload(f: FormState): { row: Omit<ProductRow, "price" | "stock"> & {
     return { error: "Enter the price in whole dinars (IQD), e.g. 25000." };
   if (!Number.isInteger(stock) || stock < 0) return { error: "Stock must be a whole number ≥ 0." };
   if (!f.image.trim()) return { error: "Add a main image." };
+  if (!isAllowedProductImageHost(f.image.trim()))
+    return { error: "Main image must be uploaded (or a link to it) — pasted links from other sites aren't shown on the storefront and would break this product's page." };
+  if (f.images.some((img) => !isAllowedProductImageHost(img)))
+    return { error: "One of the extra images isn't uploaded here — pasted links from other sites aren't shown on the storefront." };
 
   return {
     row: {

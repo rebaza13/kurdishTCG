@@ -29,7 +29,7 @@ export const useCartStore = create<CartState>()(
           set({
             items: items.map((i) =>
               i.productId === product.id
-                ? { ...i, quantity: i.quantity + quantity }
+                ? { ...i, stock: product.stock, quantity: Math.min(i.quantity + quantity, product.stock) }
                 : i
             ),
             isOpen: true,
@@ -45,7 +45,8 @@ export const useCartStore = create<CartState>()(
                 name: product.name,
                 price: product.price,
                 image: product.image,
-                quantity,
+                stock: product.stock,
+                quantity: Math.min(quantity, product.stock),
               },
             ],
             isOpen: true,
@@ -60,7 +61,9 @@ export const useCartStore = create<CartState>()(
             quantity <= 0
               ? get().items.filter((i) => i.productId !== productId)
               : get().items.map((i) =>
-                  i.productId === productId ? { ...i, quantity } : i
+                  i.productId === productId
+                    ? { ...i, quantity: Math.min(quantity, i.stock) }
+                    : i
                 ),
         }),
       clear: () => set({ items: [] }),

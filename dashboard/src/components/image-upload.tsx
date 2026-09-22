@@ -9,6 +9,42 @@ import { Button, Input, Notice } from "@/components/ui";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 
+/**
+ * A loose regex match (e.g. `/^https?:\/\//`) also matches the transient
+ * "https://" the input holds mid-keystroke, before a host has been typed —
+ * `next/image` throws synchronously on that (invalid URL), crashing the page
+ * with no error boundary around it. Only render once it's actually parseable.
+ */
+function isRenderableImageSrc(src: string): boolean {
+  if (!src) return false;
+  if (src.startsWith("/")) return true;
+  try {
+    new URL(src);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * The storefront's next.config.ts only allows images from its own Supabase
+ * storage host (see frontend/next.config.ts `images.remotePatterns`) — any
+ * other host makes next/image throw there with no fallback, taking down
+ * whatever page renders that image. Uploads always land on the storage host,
+ * so this only matters for a hand-pasted URL.
+ */
+export function isAllowedProductImageHost(src: string): boolean {
+  if (!src) return false;
+  if (src.startsWith("/")) return true;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return true; // can't validate without it — don't block save
+  try {
+    return new URL(src).hostname === new URL(supabaseUrl).hostname;
+  } catch {
+    return false;
+  }
+}
+
 /** Upload one file to the public product-images bucket and return its URL. */
 export async function uploadImage(file: File, folder: string): Promise<string> {
   if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
@@ -43,7 +79,7 @@ export function Thumb({
         className ?? "size-10"
       )}
     >
-      {src && /^https?:\/\/|^\//.test(src) && (
+      {isRenderableImageSrc(src) && (
         <Image src={src} alt={alt} fill unoptimized sizes="160px" className="object-cover" />
       )}
     </div>

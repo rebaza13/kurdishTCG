@@ -85,6 +85,10 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  /** Stock as of when this was added to the cart — a soft cap for the
+   * quantity stepper UI. Not authoritative: checkout re-validates against
+   * live stock server-side regardless. */
+  stock: number;
 }
 
 export type ProductSort = "newest" | "price-asc" | "price-desc" | "rarity";

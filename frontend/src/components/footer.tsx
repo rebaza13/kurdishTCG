@@ -76,9 +76,6 @@ export function Footer() {
           <Link href="/franchises?sort=newest" className="hover:text-[var(--color-accent)]">
             {nav("newArrivals")}
           </Link>
-          <Link href="/franchises?graded=1" className="hover:text-[var(--color-accent)]">
-            {nav("graded")}
-          </Link>
           <Link href="/sell" className="hover:text-[var(--color-accent)]">
             {nav("sellToUs")}
           </Link>

@@ -547,6 +547,132 @@ h1, h2, h3, h4, h5, h6 {
   .hero-stage__info { opacity: 1; transform: none; pointer-events: auto; }
 }
 
+/* Pack showcase — the hero's visual centerpiece. Three sealed packs fanned
+   like a hand, one-time entrance, fan spreads on hover/pointer-tilt. No
+   bordered card frame and no price/buy overlay: these are sealed packs, not
+   individually-priced singles, so nothing here should read as "buy this
+   exact item" the way the old single-card hero stage did. */
+.pack-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 420px;
+  padding: 3rem 1.5rem 4.5rem;
+  background-color: var(--color-neutral-100);
+  background-image: var(--hero-stage-bg);
+  background-size: var(--hero-stage-bg-size);
+}
+@media (min-width: 768px) {
+  .pack-stage {
+    min-height: 560px;
+  }
+}
+
+.pack-stage__group {
+  --rx: 0deg;
+  --ry: 0deg;
+  position: relative;
+  width: min(480px, 84vw);
+  height: 300px;
+  perspective: 1400px;
+  transform: rotateX(var(--rx)) rotateY(var(--ry));
+  transition: transform 0.2s ease-out;
+  will-change: transform;
+}
+@media (min-width: 768px) {
+  .pack-stage__group {
+    height: 380px;
+  }
+}
+
+.pack-stage__item {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 150px;
+  height: 244px;
+  filter: drop-shadow(0 20px 28px color-mix(in srgb, #000 38%, transparent));
+  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.35s ease;
+}
+@media (min-width: 768px) {
+  .pack-stage__item {
+    width: 190px;
+    height: 308px;
+  }
+}
+
+.pack-stage__item[data-side="center"] {
+  z-index: 3;
+  transform: translateX(-50%) rotate(-2deg);
+  animation: pack-enter-center 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+}
+.pack-stage__item[data-side="start"] {
+  z-index: 2;
+  transform: translateX(-126%) translateY(7%) rotate(-15deg);
+  animation: pack-enter-start 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.pack-stage__item[data-side="end"] {
+  z-index: 1;
+  transform: translateX(26%) translateY(9%) rotate(14deg);
+  animation: pack-enter-end 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+}
+
+.pack-stage[data-hover] .pack-stage__item[data-side="center"] {
+  transform: translateX(-50%) translateY(-6%) rotate(-2deg) scale(1.04);
+}
+.pack-stage[data-hover] .pack-stage__item[data-side="start"] {
+  transform: translateX(-142%) translateY(2%) rotate(-19deg);
+}
+.pack-stage[data-hover] .pack-stage__item[data-side="end"] {
+  transform: translateX(36%) translateY(4%) rotate(18deg);
+}
+.pack-stage[data-hover] .pack-stage__item {
+  filter: drop-shadow(0 30px 40px color-mix(in srgb, #000 46%, transparent));
+}
+
+@keyframes pack-enter-center {
+  from { opacity: 0; transform: translateX(-50%) translateY(26px) rotate(-2deg) scale(0.92); }
+  to { opacity: 1; transform: translateX(-50%) rotate(-2deg); }
+}
+@keyframes pack-enter-start {
+  from { opacity: 0; transform: translateX(-126%) translateY(32px) rotate(-15deg) scale(0.9); }
+  to { opacity: 1; transform: translateX(-126%) translateY(7%) rotate(-15deg); }
+}
+@keyframes pack-enter-end {
+  from { opacity: 0; transform: translateX(26%) translateY(32px) rotate(14deg) scale(0.9); }
+  to { opacity: 1; transform: translateX(26%) translateY(9%) rotate(14deg); }
+}
+
+.pack-stage__caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 3;
+  padding: 0.875rem;
+  text-align: center;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+  border-top: var(--border-width) solid var(--color-border);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack-stage__item {
+    animation: none;
+    opacity: 1;
+  }
+  .pack-stage__group {
+    transition: none;
+  }
+}
+
 /* Product gallery — framed image + optional thumbnail strip. The strip
    rides up over the image's bottom edge via --image-overlap / --image-fade,
    the same tokens the Neon Vault (dark) theme uses to dissolve a photo into

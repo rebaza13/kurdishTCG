@@ -162,7 +162,7 @@ export default function OrderDetailPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl">
-            {t("orderRef")} #{order.id.slice(0, 8).toUpperCase()}
+            {checkoutT("orderRef")} #{order.id.slice(0, 8).toUpperCase()}
           </h1>
           <p className="text-sm text-[var(--color-text-muted)]">
             {new Date(order.created_at).toLocaleString()}

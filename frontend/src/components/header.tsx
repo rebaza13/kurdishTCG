@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 const NAV_ITEMS = [
   { href: "/franchises", key: "franchises" },
   { href: "/franchises?sort=newest", key: "newArrivals" },
-  { href: "/franchises?graded=1", key: "graded" },
   { href: "/sell", key: "sellToUs" },
 ] as const;
 

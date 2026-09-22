@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { FranchiseTile } from "@/components/franchise-tile";
-import { HeroCardStage } from "@/components/hero-card-stage";
+import { PackShowcase } from "@/components/pack-showcase";
 import { ProductCard } from "@/components/product-card";
 import { getFeaturedProducts, getFranchises } from "@/lib/data";
 import { localizedAlternates } from "@/lib/seo";
@@ -58,10 +58,6 @@ export default async function HomePage({
     getFranchises(locale),
     getFeaturedProducts(8, locale),
   ]);
-
-  // Hero always leads with whatever the current top pull is — fully
-  // dynamic, no hardcoded franchise preference.
-  const heroCards = featured.slice(0, 3);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const siteName = meta("siteName");
@@ -136,7 +132,7 @@ export default async function HomePage({
           </span>
         </div>
         <div className="order-1 md:order-2">
-          <HeroCardStage cards={heroCards} caption={t("heroBadge")} />
+          <PackShowcase caption={t("heroBadge")} />
         </div>
        </div>
       </section>

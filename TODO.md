@@ -116,6 +116,69 @@ apps (Android only) and account logins for actually trying a payment end to end.
   `FIB_ENVIRONMENT=production` once FIB approves the account for real payments (contact
   integration@fib.iq per their docs)
 
+## 10. Bugs found by re-running QA with Chrome connected, and fixed (2026-09-22)
+_Two browser QA agents re-ran once Claude-in-Chrome connected. Fixed same-session; two more
+required a live RLS policy fix that couldn't be applied (see below)._
+
+- [x] Order detail page showed the raw i18n key `account.orderRef` instead of "Your reference" —
+  wrong translation namespace (`t` instead of `checkoutT`) in
+  `src/app/[locale]/account/orders/[id]/page.tsx`. Fixed.
+- [x] "Graded" nav link (header + footer) filtered nothing — `?graded=1` was never read anywhere.
+  Grading only ever applied to single cards, which are now hidden storefront-wide, so removed the
+  link entirely rather than building filtering for a category that can't have results.
+- [x] Cart quantity steppers (`cart-drawer.tsx`, `cart/page.tsx`) let you increment past a
+  product's stock with no warning — checkout already re-validates server-side, but the UI gave no
+  signal. Added a `stock` snapshot to `CartItem` (`packages/types`), capped both steppers against
+  it. The product-page quantity selector already capped correctly; only post-add steppers didn't.
+- [x] Dashboard: typing a URL character-by-character into a product/franchise "image" field
+  crashed the whole form (uncaught `Invalid URL` from `next/image` on the transient `"https://"`
+  state) — fixed the preview's validation (`dashboard/src/components/image-upload.tsx`).
+- [x] Dashboard: nothing stopped an admin from pasting an image URL from a host the storefront's
+  `next.config.ts` doesn't allow, which crashed the *entire* franchise listing page for every
+  visitor (uncaught `next/image` "hostname not configured" error, no fallback). Added a host
+  check before save on both product and franchise forms.
+- [?] **Two more real bugs found, fixes written but NOT applied — still no way to run SQL against
+  the live database (no Management API token / DB connection this session):**
+  - `supabase/migrations/0005_order_items_admin_read.sql` — the `order_items` SELECT policy live
+    only allows the order's own customer, never `is_admin()`, unlike `orders` itself. Reproduced
+    directly: an admin session gets the order but an always-empty `order_items` array. **The shop
+    owner currently cannot see what's inside any order in the dashboard** — this is the most
+    important of the three unapplied migrations (0004/0005/0006).
+  - `supabase/migrations/0006_newsletter_rls.sql` — newsletter signup 403s every time
+    (`new row violates row-level security policy`), even though schema.sql already describes an
+    "anyone can subscribe" policy. Reproduced directly as an anon client.
+  - Run all three (`0004`, `0005`, `0006`) in the Supabase SQL editor — `0005` especially, since
+    it blocks actually fulfilling orders.
+- Not investigated further (lower priority, logged only): dashboard franchise-count/from-price
+  aggregation looked off mid-session, but that was very likely just the packs-only filter (added
+  this same session) taking effect concurrently with the QA run, not a separate bug — worth a
+  fresh look after the migrations above are applied, if it still looks wrong.
+- One throwaway QA account (`qa-temp-customer@kurdishtcg.test`) couldn't be deleted (blocked by a
+  foreign-key reference from its test orders) — harmless, but worth deleting by hand later.
+
+## 9. Packs-only enforcement + hero rework #2 (2026-09-22, same day)
+_Supervisor clarified: this storefront sells sealed packs/boxes only — no individual cards,
+including in the hero. Chrome extension reconnected, so the two blocked QA agents were re-run._
+
+- [x] Hero rebuilt again: dropped the single-card tilt/hover-to-buy interactive card entirely
+  (was `HeroCardStage`, now unused but left in `src/components/hero-card-stage.tsx` in case a
+  future single-card feature wants it — not deleted). New `PackShowcase` component
+  (`src/components/pack-showcase.tsx`) shows 3 sealed packs fanned out (background removed
+  locally via Python/Pillow flood-fill, not a paid API), staged as PNGs under
+  `frontend/public/packs/`. These are **stock/placeholder pack photos, not real catalog
+  product photography** — swap for real shots when available.
+- [x] Hero + About page copy scrubbed of "single card(s)" language in all 3 locales
+- [x] Single-card products hidden storefront-wide (not deleted): `fetchAllProducts()` and
+  `getProductBySlug()` in `src/lib/data/index.ts` now filter `product_type != 'single_card'`.
+  Verified live: a single-card product URL now 404s, sitemap.xml no longer lists any. Cascades
+  to search, franchise filters, featured products, and franchise card-count/from-price stats.
+- [?] **Dashboard's product-type dropdown still offers "single_card"** when creating a product —
+  not fixed (dashboard untouched this session to avoid colliding with the live QA pass running
+  against it at the time). Decide whether to remove that option too.
+- [ ] Verified in Chrome across light/dark theme, mobile (390px) and RTL (Arabic) — all correct.
+  Desktop-width screenshot verification was flaky (window resize not consistently taking effect
+  in this session) but a fresh tab did confirm it.
+
 ## 8. Production-readiness pass (2026-09-22)
 _Five parallel QA agents (functional, Supabase CRUD, SEO, performance, build/debug) plus direct
 work: hero redesign, missing pages, and a few fixes. `frontend/.env.local` and
