@@ -1,4 +1,4 @@
-import type { OrderStatus } from "@tcg/types";
+import type { OrderStatus, PaymentStatus } from "@tcg/types";
 
 /** The shop sells in Iraqi dinars (whole numbers). Old test orders may carry USD. */
 export const CURRENCY = "IQD";
@@ -63,6 +63,14 @@ export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
   shipped: ["delivered", "cancelled"],
   delivered: [],
   cancelled: ["requested"],
+};
+
+export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {
+  pending: "Payment pending",
+  paid: "Paid",
+  declined: "Declined",
+  refund_requested: "Refund requested",
+  refunded: "Refunded",
 };
 
 export const PRODUCT_TYPES = [

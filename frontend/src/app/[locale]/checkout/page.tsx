@@ -1,13 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Check, Loader2 } from "lucide-react";
-import { Link } from "@/i18n/navigation";
+import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
+import { FibPaymentDialog, type FibPaymentInfo } from "@/components/fib-payment-dialog";
 import { cartSubtotal, useCartStore } from "@/lib/cart-store";
+import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
 import { getSupabaseClient } from "@/lib/supabase/client";
+import { normalizeIraqiMobile } from "@/lib/phone";
+import type { Locale } from "@/i18n/routing";
 
 function Field({
   label,
@@ -36,26 +40,59 @@ function Field({
   );
 }
 
-/**
- * Iraqi mobile numbers only (07xx xxx xxxx, +964 7xx…, 00964 7xx…). Returns
- * the normalized local form `07xxxxxxxxx`, or null if it isn't one.
- */
-function normalizeIraqiMobile(input: string): string | null {
-  const digits = input.replace(/[\s\-().]/g, "");
-  const match = /^(?:(?:\+|00)964|0)?(7\d{9})$/.exec(digits);
-  return match ? `0${match[1]}` : null;
+function GoogleIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
+      <path
+        fill="currentColor"
+        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
+      />
+      <path
+        fill="currentColor"
+        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
+      />
+      <path
+        fill="currentColor"
+        d="M5.84 14.09A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.43.34-2.09V7.07H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.93z"
+      />
+      <path
+        fill="currentColor"
+        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
+      />
+    </svg>
+  );
 }
 
 export default function CheckoutPage() {
   const t = useTranslations("checkout");
+  const locale = useLocale() as Locale;
+  const router = useRouter();
   const { items, clear } = useCartStore();
+  const user = useSupabaseUser();
+
+  const [paymentMethod, setPaymentMethod] = useState<"cash" | "fib">("cash");
   const [placedId, setPlacedId] = useState<string | null>(null);
+  const [placedPending, setPlacedPending] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
+  const [googleError, setGoogleError] = useState<string | null>(null);
+  const [fibPayment, setFibPayment] = useState<{ orderId: string; payment: FibPaymentInfo } | null>(
+    null
+  );
 
   const subtotal = cartSubtotal(items);
   const total = subtotal;
+
+  async function handleGoogle() {
+    setGoogleError(null);
+    const supabase = getSupabaseClient();
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: window.location.href },
+    });
+    if (error) setGoogleError(t("googleNotConfigured"));
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -64,58 +101,61 @@ export default function CheckoutPage() {
 
     const form = new FormData(e.currentTarget);
     const fullName = String(form.get("fullName") ?? "");
-    // The shop confirms every order by phone, so the number must be a real one.
     const phone = normalizeIraqiMobile(String(form.get("phone") ?? ""));
     if (!phone) {
       setPhoneError(t("phoneInvalid"));
       return;
     }
+    if (paymentMethod === "fib" && !user) {
+      setError(t("signInRequired"));
+      return;
+    }
+
     setSubmitting(true);
     const city = String(form.get("city") ?? "");
     const address = String(form.get("address") ?? "");
     const notes = String(form.get("notes") ?? "") || null;
 
     try {
-      const supabase = getSupabaseClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      // Generate the id client-side rather than relying on `.select()` after
-      // insert: Postgres requires RETURNING output to also satisfy the
-      // table's SELECT policy, and guest orders (user_id null) deliberately
-      // can't be read back by an anonymous client — only by their owner or
-      // an admin. Knowing the id upfront avoids needing that read entirely.
-      const orderId = crypto.randomUUID();
-
-      const { error: orderError } = await supabase.from("orders").insert({
-        id: orderId,
-        user_id: user?.id ?? null,
-        full_name: fullName,
-        phone,
-        city,
-        address,
-        notes,
-        subtotal,
-        total,
-        currency: "IQD",
-        payment_method: "cash",
+      const token = await getAccessToken();
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          locale,
+          fullName,
+          phone,
+          city,
+          address,
+          notes,
+          paymentMethod,
+          items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        }),
       });
-      if (orderError) throw orderError;
+      const data = await res.json();
 
-      const { error: itemsError } = await supabase.from("order_items").insert(
-        items.map((item) => ({
-          order_id: orderId,
-          product_id: item.productId,
-          product_name: item.name,
-          quantity: item.quantity,
-          unit_price: item.price,
-        }))
-      );
-      if (itemsError) throw itemsError;
+      if (!res.ok) {
+        if (data.error === "out_of_stock" || data.error === "product_unavailable") {
+          setError(t("stockError"));
+        } else if (data.error === "auth_required") {
+          setError(t("signInRequired"));
+        } else if (data.error === "fib_error") {
+          setError(t("fibError"));
+        } else {
+          setError(t("submitError"));
+        }
+        return;
+      }
 
-      setPlacedId(orderId);
       clear();
+      if (paymentMethod === "fib" && data.payment) {
+        setFibPayment({ orderId: data.orderId, payment: data.payment });
+      } else {
+        setPlacedId(data.orderId);
+      }
     } catch {
       setError(t("submitError"));
     } finally {
@@ -131,7 +171,7 @@ export default function CheckoutPage() {
         </span>
         <h1 className="text-2xl">{t("placedTitle")}</h1>
         <p className="text-sm text-[var(--color-text-muted)] max-w-[44ch]">
-          {t("reservationNote")}
+          {placedPending ? t("pendingPaymentNote") : t("reservationNote")}
         </p>
         <p className="text-sm">
           {t("orderRef")}:{" "}
@@ -139,14 +179,21 @@ export default function CheckoutPage() {
             #{placedId.slice(0, 8).toUpperCase()}
           </span>
         </p>
-        <Link href="/">
-          <Button variant="primary">{t("home")}</Button>
-        </Link>
+        <div className="flex gap-3">
+          {user && (
+            <Link href={`/account/orders/${placedId}`}>
+              <Button variant="secondary">{t("viewOrder")}</Button>
+            </Link>
+          )}
+          <Link href="/">
+            <Button variant="primary">{t("home")}</Button>
+          </Link>
+        </div>
       </div>
     );
   }
 
-  if (items.length === 0) {
+  if (items.length === 0 && !fibPayment) {
     return (
       <div className="flex flex-col items-center justify-center gap-4 px-4 py-24 text-center">
         <h1 className="text-2xl">{t("title")}</h1>
@@ -197,38 +244,67 @@ export default function CheckoutPage() {
 
         <section className="flex flex-col gap-3">
           <h2 className="text-lg">{t("payment")}</h2>
-          <div className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)]">
-            <input type="radio" checked readOnly className="size-4 accent-[var(--color-accent)]" />
+          <label
+            className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)] cursor-pointer has-[:checked]:border-[var(--color-accent)]"
+          >
+            <input
+              type="radio"
+              name="paymentMethodChoice"
+              checked={paymentMethod === "cash"}
+              onChange={() => setPaymentMethod("cash")}
+              className="size-4 accent-[var(--color-accent)]"
+            />
             <div>
               <p className="text-sm font-heading font-[var(--font-heading-weight)]">
                 {t("cashOnDelivery")}
               </p>
               <p className="text-xs text-[var(--color-text-muted)]">{t("cashOnDeliveryNote")}</p>
             </div>
-          </div>
-          {/* Bank payment (FIB) isn't wired up yet — shown so customers know it's planned. */}
-          <div
-            aria-disabled
-            className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)] opacity-60"
+          </label>
+          <label
+            className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)] cursor-pointer has-[:checked]:border-[var(--color-accent)]"
           >
-            <input type="radio" disabled className="size-4" />
+            <input
+              type="radio"
+              name="paymentMethodChoice"
+              checked={paymentMethod === "fib"}
+              onChange={() => setPaymentMethod("fib")}
+              className="size-4 accent-[var(--color-accent)]"
+            />
             <div className="flex-1">
               <p className="text-sm font-heading font-[var(--font-heading-weight)]">
                 {t("bankTransfer")}
               </p>
               <p className="text-xs text-[var(--color-text-muted)]">{t("bankTransferNote")}</p>
             </div>
-            <span className="text-xs border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-full)] px-2 py-0.5">
-              {t("comingSoon")}
-            </span>
-          </div>
+          </label>
+
+          {paymentMethod === "fib" && user === null && (
+            <div className="flex flex-col gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-4 bg-[var(--color-surface)]">
+              <p className="text-sm">{t("signInToPayTitle")}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{t("signInToPayBody")}</p>
+              <Button type="button" variant="secondary" onClick={handleGoogle}>
+                <GoogleIcon />
+                {t("continueWithGoogle")}
+              </Button>
+              {googleError && <p className="text-xs text-[var(--color-accent)]">{googleError}</p>}
+              <Link href="/account" className="text-xs text-[var(--color-accent)] underline-offset-2 hover:underline">
+                {t("useEmailInstead")}
+              </Link>
+            </div>
+          )}
         </section>
 
         {error && <p className="text-sm text-[var(--color-accent)]">{error}</p>}
 
-        <Button type="submit" size="lg" className="w-full justify-center" disabled={submitting}>
+        <Button
+          type="submit"
+          size="lg"
+          className="w-full justify-center"
+          disabled={submitting || (paymentMethod === "fib" && !user)}
+        >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
-          {t("placeOrder")}
+          {paymentMethod === "fib" ? t("payWithFib") : t("placeOrder")}
         </Button>
       </form>
 
@@ -249,9 +325,32 @@ export default function CheckoutPage() {
             <span className="font-heading font-[var(--font-heading-weight)]">{t("total")}</span>
             <PriceTag value={total} className="text-lg" />
           </div>
-          <p className="text-xs text-[var(--color-text-muted)]">{t("noPaymentTaken")}</p>
+          <p className="text-xs text-[var(--color-text-muted)]">
+            {paymentMethod === "fib" ? t("payNowNote") : t("noPaymentTaken")}
+          </p>
         </div>
       </aside>
+
+      {fibPayment && (
+        <FibPaymentDialog
+          open
+          onOpenChange={(open) => {
+            if (!open) {
+              setPlacedPending(true);
+              setPlacedId(fibPayment.orderId);
+              setFibPayment(null);
+            }
+          }}
+          orderId={fibPayment.orderId}
+          payment={fibPayment.payment}
+          locale={locale}
+          onPaid={() => {
+            setPlacedPending(false);
+            setPlacedId(fibPayment.orderId);
+          }}
+          onViewOrder={() => router.push(`/account/orders/${fibPayment.orderId}`)}
+        />
+      )}
     </div>
   );
 }

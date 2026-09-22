@@ -124,8 +124,8 @@
     "payment": "الدفع",
     "cashOnDelivery": "الدفع نقدًا عند التسليم",
     "cashOnDeliveryNote": "ادفع نقدًا عند استلام طلبك — لا يُخصم أي مبلغ الآن.",
-    "bankTransfer": "الدفع عبر البنك (FIB)",
-    "bankTransferNote": "الدفع البنكي عبر الإنترنت قريبًا.",
+    "bankTransfer": "الدفع عبر FIB",
+    "bankTransferNote": "امسح رمز QR في تطبيق FIB وادفع فورًا عبر الإنترنت.",
     "comingSoon": "قريبًا",
     "phoneHint": "مثال: 0750 123 4567 — سنتصل بهذا الرقم لتأكيد طلبك.",
     "phoneInvalid": "أدخل رقم هاتف عراقي صحيحًا، مثال: 0750 123 4567.",
@@ -134,10 +134,22 @@
     "shop": "المتجر",
     "orderSummary": "ملخص الطلب",
     "placeOrder": "إرسال طلب الحجز",
+    "payWithFib": "الدفع عبر FIB",
     "placedTitle": "تم إرسال طلب الحجز",
-    "reservationNote": "سنتواصل معك هاتفيًا لتأكيد طلبك وترتيب التوصيل والدفع.",
+    "reservationNote": "سنتواصل معك هاتفيًا لتأكيد طلبك وترتيب التوصيل.",
+    "pendingPaymentNote": "تم حفظ طلبك — يمكنك إتمام الدفع عبر FIB في أي وقت من صفحة طلبك.",
     "noPaymentTaken": "لا يُخصم أي مبلغ الآن — الدفع نقدًا عند التسليم.",
+    "payNowNote": "ستمسح رمز QR في تطبيق FIB للدفع الآن.",
     "submitError": "حدث خطأ أثناء إرسال طلبك — الرجاء المحاولة مرة أخرى.",
+    "stockError": "أحد المنتجات في سلتك غير متوفر — يرجى مراجعة سلتك.",
+    "fibError": "تعذّر بدء الدفع عبر FIB — يرجى المحاولة مرة أخرى بعد قليل.",
+    "signInRequired": "سجّل الدخول للدفع عبر FIB.",
+    "signInToPayTitle": "سجّل الدخول للدفع عبر FIB",
+    "signInToPayBody": "نربط الدفعات الإلكترونية بحسابك لتتمكن من متابعة حالتها.",
+    "continueWithGoogle": "المتابعة باستخدام Google",
+    "googleNotConfigured": "تسجيل الدخول عبر Google غير مُفعّل بعد — جرّب البريد الإلكتروني.",
+    "useEmailInstead": "تفضّل البريد الإلكتروني؟ سجّل الدخول هنا",
+    "viewOrder": "عرض الطلب",
     "total": "الإجمالي"
   },
   "orderStatus": {
@@ -146,6 +158,34 @@
     "shipped": "في الطريق إليك",
     "delivered": "تم التسليم",
     "cancelled": "ملغى"
+  },
+  "paymentStatus": {
+    "pending": "بانتظار الدفع",
+    "paid": "تم الدفع",
+    "declined": "تم رفض الدفع",
+    "refund_requested": "طلب استرجاع",
+    "refunded": "تم الاسترجاع"
+  },
+  "payment": {
+    "title": "الدفع عبر FIB",
+    "scanQr": "امسح هذا الرمز في تطبيق FIB للدفع",
+    "waitingForPayment": "بانتظار الدفع…",
+    "expiresIn": "ينتهي الرمز خلال {time}",
+    "orOpenApp": "أو",
+    "openFibApp": "افتح في تطبيق FIB",
+    "paidSuccessTitle": "تم استلام الدفعة",
+    "paidSuccessBody": "شكرًا — تم تأكيد طلبك.",
+    "viewOrder": "عرض الطلب",
+    "statusDeclined": "تم رفض هذه الدفعة.",
+    "statusExpired": "انتهت صلاحية رمز الدفع.",
+    "statusRefunded": "تم استرجاع هذه الدفعة.",
+    "retry": "حاول مرة أخرى",
+    "retryError": "تعذّر بدء دفعة جديدة — يرجى المحاولة مرة أخرى.",
+    "declineReason": {
+      "SERVER_FAILURE": "حدث خطأ داخلي لدى FIB أثناء معالجة هذه الدفعة.",
+      "PAYMENT_EXPIRATION": "انتهت صلاحية رمز الدفع قبل إتمامه.",
+      "PAYMENT_CANCELLATION": "تم إلغاء الدفعة."
+    }
   },
   "account": {
     "signInTitle": "مرحبًا بعودتك",
@@ -162,7 +202,16 @@
     "googleNotConfigured": "تسجيل الدخول عبر Google غير مُفعّل بعد — جرّب البريد الإلكتروني.",
     "checkEmail": "تم إنشاء الحساب. تحقق من بريدك الإلكتروني لتأكيده ثم سجّل الدخول.",
     "orderHistoryTitle": "سجل الطلبات",
-    "orderHistoryEmpty": "لا توجد طلبات بعد — بعد إتمام طلب ستظهر هنا."
+    "orderHistoryEmpty": "لا توجد طلبات بعد — بعد إتمام طلب ستظهر هنا.",
+    "orderNotFound": "الطلب غير موجود.",
+    "backToAccount": "الرجوع إلى الحساب",
+    "paymentSectionTitle": "الدفع",
+    "refreshStatus": "تحديث",
+    "paidAt": "وقت الدفع",
+    "declineReasonLabel": "السبب",
+    "payNow": "ادفع الآن",
+    "retryPayment": "حاول الدفع مرة أخرى",
+    "retryError": "تعذّر بدء دفعة جديدة — يرجى المحاولة مرة أخرى."
   },
   "sell": {
     "title": "بِع مجموعتك لنا.",

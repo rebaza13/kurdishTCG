@@ -3,17 +3,19 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, MessageCircle, Phone } from "lucide-react";
-import type { OrderStatus } from "@tcg/types";
+import { ArrowLeft, MessageCircle, Phone, RefreshCw } from "lucide-react";
+import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { NEXT_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
+import { cancelFibPayment, refundFibPayment } from "@/lib/fib-admin";
 import {
   Button,
   Card,
   ConfirmButton,
   Notice,
   PageHeader,
+  PaymentStatusBadge,
   Spinner,
   StatusBadge,
 } from "@/components/ui";
@@ -22,6 +24,12 @@ interface OrderDetail {
   id: string;
   status: OrderStatus;
   payment_method: string;
+  payment_status: PaymentStatus | null;
+  fib_readable_code: string | null;
+  fib_paid_at: string | null;
+  fib_declining_reason: string | null;
+  fib_paid_by_name: string | null;
+  fib_paid_by_iban: string | null;
   full_name: string;
   phone: string;
   city: string;
@@ -61,6 +69,8 @@ export default function OrderDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [saving, setSaving] = useState<OrderStatus | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [paymentAction, setPaymentAction] = useState<"refund" | "cancel" | null>(null);
+  const [paymentActionError, setPaymentActionError] = useState<string | null>(null);
 
   const { data: order, error, reload } = useQuery(async () => {
     const { data, error } = await getSupabase()
@@ -83,11 +93,42 @@ export default function OrderDetailPage() {
         .select("id");
       if (error) throw error;
       assertWritten(data, "The status change");
+      // Best-effort: an order cancelled while its FIB payment is still
+      // unpaid shouldn't stay payable. Never blocks the status change.
+      if (next === "cancelled" && order?.payment_method === "fib" && order.payment_status === "pending") {
+        await cancelFibPayment(id).catch(() => {});
+      }
       reload();
     } catch (err) {
       setActionError(errorMessage(err));
     } finally {
       setSaving(null);
+    }
+  }
+
+  async function handleRefund() {
+    setPaymentActionError(null);
+    setPaymentAction("refund");
+    try {
+      await refundFibPayment(id);
+      reload();
+    } catch (err) {
+      setPaymentActionError(err instanceof Error ? err.message : "Refund failed.");
+    } finally {
+      setPaymentAction(null);
+    }
+  }
+
+  async function handleCancelPayment() {
+    setPaymentActionError(null);
+    setPaymentAction("cancel");
+    try {
+      await cancelFibPayment(id);
+      reload();
+    } catch (err) {
+      setPaymentActionError(err instanceof Error ? err.message : "Cancel failed.");
+    } finally {
+      setPaymentAction(null);
     }
   }
 
@@ -179,7 +220,7 @@ export default function OrderDetailPage() {
                 </span>
               </Row>
               <Row label="Payment">
-                {order.payment_method === "cash" ? "Cash on delivery" : order.payment_method}
+                {order.payment_method === "cash" ? "Cash on delivery" : "Pay with FIB"}
               </Row>
             </dl>
           </Card>
@@ -222,6 +263,57 @@ export default function OrderDetailPage() {
               Stock is not changed automatically — adjust it on the product.
             </p>
           </Card>
+
+          {order.payment_method === "fib" && (
+            <Card className="p-4">
+              <div className="mb-2 flex items-center justify-between">
+                <h2 className="text-sm font-semibold">Payment</h2>
+                {order.payment_status && <PaymentStatusBadge status={order.payment_status} />}
+              </div>
+              <dl className="divide-y divide-line">
+                {order.fib_readable_code && (
+                  <Row label="FIB code">
+                    <span dir="ltr">{order.fib_readable_code}</span>
+                  </Row>
+                )}
+                {order.fib_paid_at && <Row label="Paid at">{dateTime(order.fib_paid_at)}</Row>}
+                {order.fib_paid_by_name && <Row label="Paid by">{order.fib_paid_by_name}</Row>}
+                {order.fib_paid_by_iban && (
+                  <Row label="IBAN">
+                    <span dir="ltr">{order.fib_paid_by_iban}</span>
+                  </Row>
+                )}
+                {order.fib_declining_reason && (
+                  <Row label="Decline reason">{order.fib_declining_reason}</Row>
+                )}
+              </dl>
+              {paymentActionError && (
+                <p className="mt-2 text-xs text-danger">{paymentActionError}</p>
+              )}
+              {order.payment_status === "paid" && (
+                <div className="mt-3">
+                  <ConfirmButton
+                    loading={paymentAction === "refund"}
+                    disabled={paymentAction !== null}
+                    onConfirm={handleRefund}
+                  >
+                    Refund payment
+                  </ConfirmButton>
+                </div>
+              )}
+              {order.payment_status === "pending" && (
+                <Button
+                  className="mt-3"
+                  variant="secondary"
+                  loading={paymentAction === "cancel"}
+                  disabled={paymentAction !== null}
+                  onClick={handleCancelPayment}
+                >
+                  <RefreshCw className="size-3.5" /> Cancel FIB payment
+                </Button>
+              )}
+            </Card>
+          )}
 
           <Card className="p-4">
             <h2 className="mb-2 text-sm font-semibold">Customer</h2>

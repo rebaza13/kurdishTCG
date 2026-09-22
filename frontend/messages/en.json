@@ -124,8 +124,8 @@
     "payment": "Payment",
     "cashOnDelivery": "Cash on delivery",
     "cashOnDeliveryNote": "Pay in cash when your order is delivered — nothing is charged online.",
-    "bankTransfer": "Pay by bank (FIB)",
-    "bankTransferNote": "Online bank payment is coming soon.",
+    "bankTransfer": "Pay with FIB",
+    "bankTransferNote": "Scan a QR code in your FIB app and pay instantly online.",
     "comingSoon": "Coming soon",
     "phoneHint": "e.g. 0750 123 4567 — we call this number to confirm your order.",
     "phoneInvalid": "Enter a valid Iraqi phone number, e.g. 0750 123 4567.",
@@ -134,10 +134,22 @@
     "shop": "Shop",
     "orderSummary": "Order summary",
     "placeOrder": "Request reservation",
+    "payWithFib": "Pay with FIB",
     "placedTitle": "Reservation requested",
-    "reservationNote": "We'll contact you by phone to confirm your order and arrange delivery and payment.",
+    "reservationNote": "We'll contact you by phone to confirm your order and arrange delivery.",
+    "pendingPaymentNote": "Your order is saved — finish paying with FIB any time from your order page.",
     "noPaymentTaken": "No payment is taken now — you pay cash on delivery.",
+    "payNowNote": "You'll scan a QR code in the FIB app to pay now.",
     "submitError": "Something went wrong sending your request — please try again.",
+    "stockError": "One of the items in your cart is out of stock — please review your cart.",
+    "fibError": "FIB payment couldn't be started — please try again in a moment.",
+    "signInRequired": "Sign in to pay with FIB.",
+    "signInToPayTitle": "Sign in to pay with FIB",
+    "signInToPayBody": "We link online payments to your account so you can track their status.",
+    "continueWithGoogle": "Continue with Google",
+    "googleNotConfigured": "Google sign-in isn't set up yet — try email instead.",
+    "useEmailInstead": "Prefer email? Sign in here",
+    "viewOrder": "View order",
     "total": "Total"
   },
   "orderStatus": {
@@ -146,6 +158,34 @@
     "shipped": "Out for delivery",
     "delivered": "Delivered",
     "cancelled": "Cancelled"
+  },
+  "paymentStatus": {
+    "pending": "Payment pending",
+    "paid": "Paid",
+    "declined": "Payment declined",
+    "refund_requested": "Refund requested",
+    "refunded": "Refunded"
+  },
+  "payment": {
+    "title": "Pay with FIB",
+    "scanQr": "Scan this code in the FIB app to pay",
+    "waitingForPayment": "Waiting for payment…",
+    "expiresIn": "Code expires in {time}",
+    "orOpenApp": "or",
+    "openFibApp": "Open in FIB app",
+    "paidSuccessTitle": "Payment received",
+    "paidSuccessBody": "Thanks — your order is confirmed.",
+    "viewOrder": "View order",
+    "statusDeclined": "This payment was declined.",
+    "statusExpired": "This payment code has expired.",
+    "statusRefunded": "This payment has been refunded.",
+    "retry": "Try again",
+    "retryError": "Couldn't start a new payment — please try again.",
+    "declineReason": {
+      "SERVER_FAILURE": "FIB had an internal error processing this payment.",
+      "PAYMENT_EXPIRATION": "The payment code expired before it was paid.",
+      "PAYMENT_CANCELLATION": "The payment was cancelled."
+    }
   },
   "account": {
     "signInTitle": "Welcome back",
@@ -162,7 +202,16 @@
     "googleNotConfigured": "Google sign-in isn't set up yet — try email instead.",
     "checkEmail": "Account created. Check your email to confirm it, then sign in.",
     "orderHistoryTitle": "Order history",
-    "orderHistoryEmpty": "No orders yet — once you check out, they'll show up here."
+    "orderHistoryEmpty": "No orders yet — once you check out, they'll show up here.",
+    "orderNotFound": "Order not found.",
+    "backToAccount": "Back to account",
+    "paymentSectionTitle": "Payment",
+    "refreshStatus": "Refresh",
+    "paidAt": "Paid at",
+    "declineReasonLabel": "Reason",
+    "payNow": "Pay now",
+    "retryPayment": "Try payment again",
+    "retryError": "Couldn't start a new payment — please try again."
   },
   "sell": {
     "title": "Sell your collection to us.",

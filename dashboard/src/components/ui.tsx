@@ -2,9 +2,9 @@
 
 import { useState, type ComponentProps, type ReactNode } from "react";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
-import type { OrderStatus } from "@tcg/types";
+import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { cn } from "@/lib/utils";
-import { STATUS_LABEL } from "@/lib/format";
+import { PAYMENT_STATUS_LABEL, STATUS_LABEL } from "@/lib/format";
 
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 
@@ -233,4 +233,16 @@ const STATUS_TONE: Record<OrderStatus, "accent" | "info" | "warn" | "ok" | "neut
 
 export function StatusBadge({ status }: { status: OrderStatus }) {
   return <Badge tone={STATUS_TONE[status]}>{STATUS_LABEL[status] ?? status}</Badge>;
+}
+
+const PAYMENT_STATUS_TONE: Record<PaymentStatus, "accent" | "info" | "warn" | "ok" | "danger"> = {
+  pending: "accent",
+  paid: "ok",
+  declined: "danger",
+  refund_requested: "warn",
+  refunded: "info",
+};
+
+export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
+  return <Badge tone={PAYMENT_STATUS_TONE[status]}>{PAYMENT_STATUS_LABEL[status] ?? status}</Badge>;
 }

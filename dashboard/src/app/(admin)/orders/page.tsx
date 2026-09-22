@@ -4,16 +4,27 @@ import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
-import type { OrderStatus } from "@tcg/types";
+import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { ORDER_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { Card, EmptyState, Input, Notice, PageHeader, Spinner, StatusBadge } from "@/components/ui";
+import {
+  Card,
+  EmptyState,
+  Input,
+  Notice,
+  PageHeader,
+  PaymentStatusBadge,
+  Spinner,
+  StatusBadge,
+} from "@/components/ui";
 
 interface OrderRow {
   id: string;
   status: OrderStatus;
+  payment_method: string;
+  payment_status: PaymentStatus | null;
   full_name: string;
   phone: string;
   city: string;
@@ -26,7 +37,9 @@ interface OrderRow {
 async function loadOrders() {
   const { data, error } = await getSupabase()
     .from("orders")
-    .select("id,status,full_name,phone,city,total,currency,created_at,order_items(quantity)")
+    .select(
+      "id,status,payment_method,payment_status,full_name,phone,city,total,currency,created_at,order_items(quantity)"
+    )
     .order("created_at", { ascending: false })
     .limit(1000);
   if (error) throw error;
@@ -138,7 +151,12 @@ function OrdersView() {
                     {money(o.total, o.currency)}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={o.status} />
+                    <div className="flex flex-wrap gap-1.5">
+                      <StatusBadge status={o.status} />
+                      {o.payment_method === "fib" && o.payment_status && (
+                        <PaymentStatusBadge status={o.payment_status} />
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

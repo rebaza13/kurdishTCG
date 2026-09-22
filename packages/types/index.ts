@@ -36,6 +36,14 @@ export type OrderStatus =
   | "delivered"
   | "cancelled";
 
+/** Only meaningful when `paymentMethod` is `"fib"` — cash orders leave this unset. */
+export type PaymentStatus =
+  | "pending"
+  | "paid"
+  | "declined"
+  | "refund_requested"
+  | "refunded";
+
 /** A franchise resolved to one locale, plus aggregates over its products. */
 export interface Franchise {
   slug: FranchiseSlug;
@@ -114,6 +122,15 @@ export interface Order {
   total: number;
   currency: string;
   createdAt: string;
+  paymentStatus?: PaymentStatus | null;
+  fibPaymentId?: string | null;
+  fibReadableCode?: string | null;
+  fibValidUntil?: string | null;
+  fibPaidAt?: string | null;
+  fibDecliningReason?: string | null;
+  fibDeclinedAt?: string | null;
+  fibPaidByName?: string | null;
+  fibPaidByIban?: string | null;
 }
 
 export interface OrderItem {

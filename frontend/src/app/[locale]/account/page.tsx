@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { User } from "@supabase/supabase-js";
 import { Loader2, Package } from "lucide-react";
+import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -11,6 +12,8 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 type OrderRow = {
   id: string;
   status: string;
+  payment_method: string;
+  payment_status: string | null;
   total: number;
   created_at: string;
 };
@@ -41,6 +44,7 @@ function GoogleIcon() {
 export default function AccountPage() {
   const t = useTranslations("account");
   const statusT = useTranslations("orderStatus");
+  const paymentStatusT = useTranslations("paymentStatus");
   const [mode, setMode] = useState<"signin" | "signup">("signin");
   const [user, setUser] = useState<User | null | undefined>(undefined);
   const [orders, setOrders] = useState<OrderRow[]>([]);
@@ -62,7 +66,7 @@ export default function AccountPage() {
     const supabase = getSupabaseClient();
     supabase
       .from("orders")
-      .select("id, status, total, created_at")
+      .select("id, status, payment_method, payment_status, total, created_at")
       .order("created_at", { ascending: false })
       .then(({ data }) => setOrders((data as OrderRow[]) ?? []));
   }, [user]);
@@ -132,7 +136,11 @@ export default function AccountPage() {
           ) : (
             <div className="flex flex-col divide-y-[length:var(--border-width)] divide-[var(--color-border)] border-y-[length:var(--border-width)] border-[var(--color-border)]">
               {orders.map((order) => (
-                <div key={order.id} className="flex items-center justify-between py-4 gap-4">
+                <Link
+                  key={order.id}
+                  href={`/account/orders/${order.id}`}
+                  className="flex items-center justify-between py-4 gap-4 hover:bg-[var(--color-surface)]"
+                >
                   <div className="flex items-center gap-3">
                     <Package className="size-4 text-[var(--color-text-muted)]" />
                     <div>
@@ -141,11 +149,14 @@ export default function AccountPage() {
                       </p>
                       <p className="text-xs text-[var(--color-text-muted)]">
                         {statusT(order.status)}
+                        {order.payment_method === "fib" && order.payment_status
+                          ? ` · ${paymentStatusT(order.payment_status)}`
+                          : ""}
                       </p>
                     </div>
                   </div>
                   <PriceTag value={order.total} />
-                </div>
+                </Link>
               ))}
             </div>
           )}
