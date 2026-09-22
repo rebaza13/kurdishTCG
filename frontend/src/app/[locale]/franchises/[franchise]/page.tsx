@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -7,11 +8,57 @@ import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { getFranchise, getProducts } from "@/lib/data";
 import { FRANCHISE_ORDER } from "@/lib/data/franchises";
+import { localizedAlternates } from "@/lib/seo";
 import type { FranchiseSlug, Rarity } from "@tcg/types";
 import type { Locale } from "@/i18n/routing";
 
 export function generateStaticParams() {
   return FRANCHISE_ORDER.map((franchise) => ({ franchise }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale; franchise: string }>;
+}): Promise<Metadata> {
+  const { locale, franchise: franchiseParam } = await params;
+  const franchise = franchiseParam as FranchiseSlug;
+  const [franchiseData, meta] = await Promise.all([
+    getFranchise(franchise, locale),
+    getTranslations({ locale, namespace: "meta" }),
+  ]);
+  const alternates = localizedAlternates(locale, `/franchises/${franchise}`);
+
+  if (!franchiseData) {
+    return {
+      title: meta("siteName"),
+      description: meta("tagline"),
+      alternates,
+    };
+  }
+
+  const title = franchiseData.name;
+  const description = franchiseData.description || meta("tagline");
+
+  return {
+    title,
+    description,
+    alternates,
+    openGraph: {
+      title: `${title} · ${meta("siteName")}`,
+      description,
+      url: alternates.canonical,
+      siteName: meta("siteName"),
+      type: "website",
+      images: franchiseData.image ? [{ url: franchiseData.image }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: franchiseData.image ? [franchiseData.image] : undefined,
+    },
+  };
 }
 
 export default async function FranchiseListingPage({

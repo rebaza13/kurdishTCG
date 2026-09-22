@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -8,8 +9,54 @@ import { ProductPurchase } from "@/components/product-purchase";
 import { ProductCard } from "@/components/product-card";
 import { getFranchise, getProductBySlug, getRelatedProducts } from "@/lib/data";
 import { buildGalleryImages } from "@/lib/utils";
+import { localizedAlternates } from "@/lib/seo";
 import type { FranchiseSlug } from "@tcg/types";
 import type { Locale } from "@/i18n/routing";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale; franchise: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, franchise: franchiseParam, slug } = await params;
+  const franchise = franchiseParam as FranchiseSlug;
+  const [product, meta] = await Promise.all([
+    getProductBySlug(franchise, slug, locale),
+    getTranslations({ locale, namespace: "meta" }),
+  ]);
+  const alternates = localizedAlternates(locale, `/franchises/${franchise}/${slug}`);
+
+  if (!product) {
+    return {
+      title: meta("siteName"),
+      description: meta("tagline"),
+      alternates,
+    };
+  }
+
+  const title = product.name;
+  const description = product.description || meta("tagline");
+
+  return {
+    title,
+    description,
+    alternates,
+    openGraph: {
+      title: `${title} · ${meta("siteName")}`,
+      description,
+      url: alternates.canonical,
+      siteName: meta("siteName"),
+      type: "website",
+      images: product.image ? [{ url: product.image }] : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: product.image ? [product.image] : undefined,
+    },
+  };
+}
 
 export default async function ProductDetailPage({
   params,
@@ -34,8 +81,32 @@ export default async function ProductDetailPage({
   const galleryImages = buildGalleryImages(product.image, product.images);
   const lowStock = product.stock > 0 && product.stock <= 5;
 
+  const productJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    name: product.name,
+    image: galleryImages,
+    description: product.description,
+    sku: product.id,
+    offers: {
+      "@type": "Offer",
+      price: product.price,
+      priceCurrency: "IQD",
+      availability:
+        product.stock > 0
+          ? "https://schema.org/InStock"
+          : "https://schema.org/OutOfStock",
+    },
+  };
+
   return (
-    <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10">
+    <>
+      {/* Trusted, server-generated JSON from our own DB — no user input reaches this. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(productJsonLd) }}
+      />
+      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10">
       <nav aria-label="Breadcrumb" className="text-xs text-[var(--color-text-muted)] mb-8 flex items-center gap-2 flex-wrap">
         {franchiseData && (
           <span
@@ -120,7 +191,8 @@ export default async function ProductDetailPage({
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

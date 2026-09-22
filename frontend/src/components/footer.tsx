@@ -4,7 +4,6 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
-import { getSupabaseClient } from "@/lib/supabase/client";
 
 export function Footer() {
   const t = useTranslations("footer");
@@ -40,6 +39,10 @@ export function Footer() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   if (!email.trim()) return;
+                  // Lazy-load the Supabase SDK only when someone actually
+                  // submits — keeps it out of the initial bundle for every
+                  // page, since Footer renders globally.
+                  const { getSupabaseClient } = await import("@/lib/supabase/client");
                   const supabase = getSupabaseClient();
                   const { error } = await supabase
                     .from("newsletter_signups")
@@ -91,10 +94,10 @@ export function Footer() {
           <span className="font-heading font-[var(--font-heading-weight)] text-xs uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
             {t("company")}
           </span>
-          <Link href="/" className="hover:text-[var(--color-accent)]">
+          <Link href="/about" className="hover:text-[var(--color-accent)]">
             {t("about")}
           </Link>
-          <Link href="/" className="hover:text-[var(--color-accent)]">
+          <Link href="/contact" className="hover:text-[var(--color-accent)]">
             {t("contact")}
           </Link>
         </div>
@@ -103,13 +106,13 @@ export function Footer() {
           <span className="font-heading font-[var(--font-heading-weight)] text-xs uppercase tracking-[0.1em] text-[var(--color-text-muted)]">
             {t("support")}
           </span>
-          <Link href="/" className="hover:text-[var(--color-accent)]">
+          <Link href="/shipping" className="hover:text-[var(--color-accent)]">
             {t("shippingInfo")}
           </Link>
-          <Link href="/" className="hover:text-[var(--color-accent)]">
+          <Link href="/returns" className="hover:text-[var(--color-accent)]">
             {t("returns")}
           </Link>
-          <Link href="/" className="hover:text-[var(--color-accent)]">
+          <Link href="/faq" className="hover:text-[var(--color-accent)]">
             {t("faq")}
           </Link>
         </div>

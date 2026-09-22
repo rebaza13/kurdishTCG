@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,43 @@ import { FranchiseTile } from "@/components/franchise-tile";
 import { HeroCardStage } from "@/components/hero-card-stage";
 import { ProductCard } from "@/components/product-card";
 import { getFeaturedProducts, getFranchises } from "@/lib/data";
+import { localizedAlternates } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
+
+// Catalog data doesn't change minute-to-minute — revalidate every 5 minutes
+// instead of baking it in at build time forever (this route has no
+// Request-time API, so without this it would cache indefinitely).
+export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "meta" });
+  const title = t("siteName");
+  const description = t("tagline");
+  const alternates = localizedAlternates(locale, "");
+
+  return {
+    title,
+    description,
+    alternates,
+    openGraph: {
+      title,
+      description,
+      url: alternates.canonical,
+      siteName: title,
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function HomePage({
   params,
@@ -15,8 +52,9 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, franchises, featured] = await Promise.all([
+  const [t, meta, franchises, featured] = await Promise.all([
     getTranslations("home"),
+    getTranslations({ locale, namespace: "meta" }),
     getFranchises(locale),
     getFeaturedProducts(8, locale),
   ]);
@@ -24,26 +62,66 @@ export default async function HomePage({
   // Hero always leads with whatever the current top pull is — fully
   // dynamic, no hardcoded franchise preference.
   const heroCards = featured.slice(0, 3);
-  const totalStock = franchises.reduce((sum, f) => sum + f.cardCount, 0);
+
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const siteName = meta("siteName");
+  const tagline = meta("tagline");
+  const organizationJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    name: siteName,
+    url: siteUrl,
+    description: tagline,
+  };
+  const websiteJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    name: siteName,
+    url: siteUrl,
+    description: tagline,
+  };
 
   return (
-    <div className="flex flex-col">
-      {/* Hero */}
+    <>
+      {/* Trusted, server-generated JSON, not user input. */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
+      />
+      <div className="flex flex-col">
+      {/* Hero — the card stage leads on every viewport; the copy column is a
+          desktop-only complement so mobile doesn't have to scroll past it. */}
       <section className="border-b-[length:var(--border-width)] border-[var(--color-border-strong)]">
-       <div className="mx-auto grid max-w-[1440px] md:grid-cols-[1.15fr_1fr]">
-        <div className="flex flex-col gap-6 px-4 py-16 md:px-10 md:py-20 md:border-e-[length:var(--border-width)] border-[var(--color-border-strong)]">
-          <span className="w-fit text-xs uppercase tracking-[0.16em] font-heading font-[var(--font-heading-weight)] px-3 py-1.5 border-[length:var(--border-width)] border-[var(--color-border)] text-[var(--color-accent-secondary)] rounded-[var(--radius-full)]">
-            {t("heroKicker")}
-          </span>
-          <h1 className="text-4xl md:text-6xl max-w-[16ch]">
-            {t.rich("heroTitle", {
-              accent: (chunks) => <span className="gradient-text">{chunks}</span>,
-            })}
+       <div className="mx-auto flex flex-col md:grid max-w-[1440px] md:grid-cols-[1fr_1.15fr]">
+        <div className="order-2 md:order-1 flex flex-col gap-5 px-4 py-6 md:px-10 md:py-20 md:border-e-[length:var(--border-width)] border-[var(--color-border-strong)]">
+          <h1 className="hidden md:block text-4xl md:text-6xl max-w-[18ch]">
+            {t("heroTitle")}
           </h1>
-          <p className="text-base text-[var(--color-text-muted)] max-w-[54ch]">
-            {t("heroSubtitle")}
+          <p className="hidden md:block text-xl md:text-3xl max-w-[22ch] text-[var(--color-text-muted)]">
+            {t("heroTitleSecondary")}
           </p>
-          <div className="flex flex-wrap gap-3 mt-2">
+          <p className="sr-only">{t("heroSubtitle")}</p>
+          <div className="hidden md:flex flex-wrap gap-x-4 gap-y-2.5 max-w-[40ch] pt-1">
+            {franchises.map((f) => (
+              <Link
+                key={f.slug}
+                href={`/franchises/${f.slug}`}
+                className="flex items-center gap-1.5 text-xs font-heading font-[var(--font-heading-weight)] text-[var(--color-text-muted)] hover:text-[var(--color-text)] transition-colors"
+              >
+                <span
+                  className="h-2 w-2 rounded-[var(--radius-full)]"
+                  style={{ background: f.accent }}
+                  aria-hidden
+                />
+                {f.name}
+              </Link>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-3 mt-1">
             <Link href="/franchises">
               <Button size="lg">{t("shopNow")}</Button>
             </Link>
@@ -53,13 +131,13 @@ export default async function HomePage({
               </Button>
             </Link>
           </div>
-          <div className="grid grid-cols-3 border-t-[length:var(--border-width)] border-[var(--color-border)] mt-4">
-            <Stat value={String(totalStock)} label={t("statCards")} />
-            <Stat value={String(franchises.length)} label={t("statFranchises")} border />
-            <Stat value={t("statCashValue")} label={t("statCash")} border />
-          </div>
+          <span className="hidden md:block text-xs text-[var(--color-text-muted)]">
+            {t("heroKicker")}
+          </span>
         </div>
-        <HeroCardStage cards={heroCards} caption={t("heroBadge")} />
+        <div className="order-1 md:order-2">
+          <HeroCardStage cards={heroCards} caption={t("heroBadge")} />
+        </div>
        </div>
       </section>
 
@@ -111,17 +189,7 @@ export default async function HomePage({
           </div>
         </div>
       </section>
-    </div>
-  );
-}
-
-function Stat({ value, label, border }: { value: string; label: string; border?: boolean }) {
-  return (
-    <div className={`py-5 ${border ? "border-s-[length:var(--border-width)] border-[var(--color-border)] ps-5" : ""}`}>
-      <div className="font-heading font-[var(--font-heading-weight)] text-3xl leading-none">
-        {value}
       </div>
-      <span className="text-xs text-[var(--color-text-muted)]">{label}</span>
-    </div>
+    </>
   );
 }

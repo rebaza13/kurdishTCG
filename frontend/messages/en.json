@@ -25,7 +25,8 @@
   },
   "home": {
     "heroKicker": "New drops weekly",
-    "heroTitle": "Sealed and single cards, <accent>six franchises deep</accent>.",
+    "heroTitle": "Every pack could be the pull.",
+    "heroTitleSecondary": "Sealed boxes to single cards, priced in dinars.",
     "heroSubtitle": "Riftbound, Naruto, Disney Lorcana, Avatar, SpongeBob and Zootopia — sourced and shipped from Erbil.",
     "shopNow": "Shop new arrivals",
     "browseFranchises": "Browse franchises",
@@ -217,6 +218,56 @@
     "title": "Sell your collection to us.",
     "body": "Submit your cards and sealed product for a same-day quote — Riftbound, Naruto, Lorcana, Avatar, SpongeBob and Zootopia. This flow is still in build.",
     "comingSoon": "Coming soon"
+  },
+  "aboutPage": {
+    "kicker": "About us",
+    "title": "Real cards, shipped from Erbil.",
+    "p1": "KurdishTCG is an online shop for sealed trading card releases — Riftbound, Naruto, Disney Lorcana, Avatar: The Last Airbender, SpongeBob and Zootopia — plus the odd single pulled from real product.",
+    "p2": "Every listing is photographed from the actual box, pack or card on our shelf, not a stock photo. New stock is sourced and shipped from Erbil to anywhere in Iraq.",
+    "p3": "Pay cash on delivery, or instantly online with FIB. The site runs in English, Arabic and Kurdish (Sorani), so browse in whichever you're comfortable with.",
+    "cta": "Shop new arrivals"
+  },
+  "contactPage": {
+    "kicker": "Contact",
+    "title": "Get in touch",
+    "body": "Have a question about an order, a franchise we don't carry yet, or a bulk request? Reach us directly, or check out first — we call to confirm every cash order before it ships.",
+    "whatsappLabel": "WhatsApp",
+    "emailLabel": "Email",
+    "comingSoon": "We're finishing our direct contact line — check back soon, or place an order and we'll call to confirm it.",
+    "sellCta": "Selling a collection instead?",
+    "sellLink": "Get a quote"
+  },
+  "shippingPage": {
+    "kicker": "Shipping",
+    "title": "Delivery across Iraq",
+    "p1": "We deliver to every governorate in Iraq. After you check out, we call the number on your order to confirm it before anything ships.",
+    "p2": "Pay cash when it arrives, or settle instantly online with FIB at checkout.",
+    "p3": "Sealed boxes and packs travel in protective packaging, so what you pull is what you saw in the listing.",
+    "note": "Delivery windows vary by governorate — ask when we call to confirm your order."
+  },
+  "returnsPage": {
+    "kicker": "Returns",
+    "title": "Returns & refunds",
+    "p1": "Wrong item, or damaged on arrival? Contact us as soon as you notice and we'll replace it or refund you — no questions asked.",
+    "p2": "Sealed, unopened product can be returned if you've simply changed your mind; opened packs and boxes can't, since we can't verify what shipped once the seal is broken.",
+    "p3": "Orders paid with FIB are refunded straight to your FIB account, within FIB's own 24-hour window on payments. Cash-on-delivery refunds are arranged directly when we speak.",
+    "note": "Exact return windows are being finalized — contact us and we'll sort it out case by case."
+  },
+  "faqPage": {
+    "kicker": "FAQ",
+    "title": "Frequently asked questions",
+    "q1": "How do I pay?",
+    "a1": "Cash when your order arrives, or instantly online with FIB at checkout.",
+    "q2": "Do you deliver outside Erbil?",
+    "a2": "Yes — anywhere in Iraq.",
+    "q3": "Are the product photos real?",
+    "a3": "Yes. Every listing is photographed from the actual box, pack or card we have in stock.",
+    "q4": "Can I return something?",
+    "a4": "Wrong or damaged items, always. See our Returns page for the full policy.",
+    "q5": "What languages does the site support?",
+    "a5": "English, Arabic and Kurdish (Sorani) — switch anytime from the header.",
+    "q6": "I have cards or sealed product to sell.",
+    "a6": "Head to our Sell page for a quote."
   },
   "footer": {
     "shop": "Shop",

@@ -46,14 +46,30 @@ export async function POST(request: Request) {
   const address = (body.address ?? "").trim();
   const notes = body.notes?.trim() || null;
   const paymentMethod = body.paymentMethod === "fib" ? "fib" : "cash";
-  const items = Array.isArray(body.items) ? body.items : [];
+  const rawItems = Array.isArray(body.items) ? body.items : [];
 
   if (!fullName || !phone || !city || !address) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
-  if (items.length === 0 || items.some((i) => !i.productId || !(i.quantity > 0))) {
+  if (
+    rawItems.length === 0 ||
+    rawItems.length > 50 ||
+    rawItems.some(
+      (i) => typeof i.productId !== "string" || !i.productId || !Number.isInteger(i.quantity) || i.quantity <= 0
+    )
+  ) {
     return NextResponse.json({ error: "invalid_items" }, { status: 400 });
   }
+
+  // Merge duplicate productIds (e.g. the same item submitted twice) so the
+  // stock check below validates against total requested quantity, not each
+  // line independently — otherwise two lines of 5 against a stock of 5 both
+  // pass the per-line check and oversell.
+  const quantityByProductId = new Map<string, number>();
+  for (const item of rawItems) {
+    quantityByProductId.set(item.productId, (quantityByProductId.get(item.productId) ?? 0) + item.quantity);
+  }
+  const items = [...quantityByProductId].map(([productId, quantity]) => ({ productId, quantity }));
 
   const user = await verifyUser(request);
   if (paymentMethod === "fib" && !user) {

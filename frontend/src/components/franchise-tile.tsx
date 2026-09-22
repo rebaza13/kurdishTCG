@@ -26,7 +26,7 @@ export function FranchiseTile({
       <div className="relative aspect-[4/3] overflow-hidden bg-[var(--color-neutral-200)]">
         <Image
           src={franchise.image}
-          alt=""
+          alt={franchise.name}
           fill
           sizes="(max-width: 640px) 150px, (max-width: 1024px) 190px, 220px"
           className="object-cover object-top transition-transform duration-300 group-hover:scale-[1.05]"

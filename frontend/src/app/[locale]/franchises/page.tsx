@@ -1,7 +1,46 @@
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FranchiseTile } from "@/components/franchise-tile";
 import { getFranchises } from "@/lib/data";
+import { localizedAlternates } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
+
+// Same reasoning as the home page — catalog data, revalidate periodically
+// instead of caching indefinitely.
+export const revalidate = 300;
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: Locale }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const [t, meta] = await Promise.all([
+    getTranslations({ locale, namespace: "franchises" }),
+    getTranslations({ locale, namespace: "meta" }),
+  ]);
+  const title = t("title");
+  const description = t("subtitle");
+  const alternates = localizedAlternates(locale, "/franchises");
+
+  return {
+    title,
+    description,
+    alternates,
+    openGraph: {
+      title: `${title} · ${meta("siteName")}`,
+      description,
+      url: alternates.canonical,
+      siteName: meta("siteName"),
+      type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
+  };
+}
 
 export default async function FranchisesPage({
   params,

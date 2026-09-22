@@ -115,3 +115,76 @@ apps (Android only) and account logins for actually trying a payment end to end.
 - [ ] Swap `FIB_CLIENT_ID` / `FIB_CLIENT_SECRET` for production credentials and set
   `FIB_ENVIRONMENT=production` once FIB approves the account for real payments (contact
   integration@fib.iq per their docs)
+
+## 8. Production-readiness pass (2026-09-22)
+_Five parallel QA agents (functional, Supabase CRUD, SEO, performance, build/debug) plus direct
+work: hero redesign, missing pages, and a few fixes. `frontend/.env.local` and
+`dashboard/.env.local` were filled in this session (service role key, FIB stage creds, dashboard
+Supabase keys) — were previously missing/incomplete on this checkout._
+
+**Fixed and verified this session:**
+- [x] Checkout oversell bug: two line items for the same product summed past stock and both passed
+  the per-line stock check independently (5+5 against 8 in stock → order accepted for 10). Fixed by
+  merging duplicate `productId`s before validating; verified live against real Supabase data that
+  the same request is now rejected with `out_of_stock`, and a legitimate order still succeeds.
+  (`frontend/src/app/api/checkout/route.ts`)
+- [x] Also added: item-count cap (50), integer-quantity validation on checkout (was silently
+  accepting `1.5`)
+- [x] Footer's About/Contact/Shipping info/Returns/FAQ links all pointed at `/` — built all 5 pages
+  (en/ar/ckb), wired the footer to them. Contact page reads `whatsapp_number`/`contact_email` live
+  from the `settings` table (currently empty — fill in via dashboard Settings to make it live)
+- [x] Hero section redesigned: card stage now leads on every viewport; the copy column (headline,
+  subtitle, franchise chips) is desktop-only so mobile doesn't scroll past a wall of text before
+  reaching the product grid. Dropped the eyebrow-badge + stat-row pattern. New copy in all 3 locales
+  — **AR/CKB hero copy is AI-translated, not reviewed by a native speaker; same caveat applies to
+  the 5 new pages' AR/CKB copy.**
+- [x] SEO: added `generateMetadata` (unique title/description/OG/Twitter/canonical/hreflang) to
+  home, franchises listing, franchise detail, product detail; `metadataBase` on the locale layout;
+  `sitemap.ts` (all real routes × 3 locales, ~99 entries), `robots.ts`, `manifest.ts`; Product
+  JSON-LD on product pages, Organization/WebSite JSON-LD on home; fixed a missing `alt` on franchise
+  tile images. Previously: every page shared the same generic title/description, no sitemap, no
+  robots.txt, no structured data at all.
+- [x] Performance: added `revalidate = 300` to home + franchises listing (were caching indefinitely
+  at build time with live commerce data and no revalidation); lazy-loaded `@supabase/supabase-js` in
+  the footer's newsletter form instead of shipping the full SDK on every page load
+- [x] Installed the `frontend-design` skill (Leonxlnx/taste-skill and emilkowalski/skill were
+  already installed from a prior session)
+
+**Found, NOT fixed — needs a decision or follow-up:**
+- [?] **Checkout has no idempotency guard** — a double-submit or retried network request creates a
+  duplicate order (and, worse, a duplicate real FIB payment). Wrote
+  `supabase/migrations/0004_checkout_idempotency.sql` (adds a unique `idempotency_key` column) but
+  couldn't apply it — no Supabase Management API token / DB connection available this session, only
+  the REST/service-role keys. **Run that migration in the Supabase SQL editor**, then the app code
+  can be wired to use it (not done yet, to avoid shipping code against a column that doesn't exist).
+- [ ] Same-order-id race in `POST /api/fib/retry`: two concurrent retries can both cancel the old FIB
+  payment and both create a new one; the loser's new payment is never linked to the order but is
+  still live/payable at FIB. Needs a DB-level guard (conditional update) before implementing.
+- [ ] `orders` insert has no transaction — if the `order_items` insert fails after `orders` succeeds,
+  cleanup is a manual best-effort delete whose result isn't checked. Worth an atomic RPC eventually.
+- [ ] FIB error messages are forwarded to the client verbatim in a few places (not a stack trace, but
+  unfiltered third-party text) — worth allowlisting known error codes instead.
+- [ ] No rate limiting on `/api/fib/webhook` or `/api/fib/status/[id]` (both are safe-by-design since
+  they re-verify with FIB rather than trusting input, but still hammer-able)
+- [ ] Product detail pages have no `generateStaticParams`/ISR — fully SSR on the highest-traffic
+  route type. `franchises/[franchise]/page.tsx` has `generateStaticParams` but it's currently a
+  no-op because reading `searchParams` forces it dynamic anyway (correct, given the filter UI) — but
+  either way, `src/lib/data/index.ts`'s `fetchAllProducts()` does a full unfiltered table scan with
+  zero caching/memoization, called 2-3× per page view (product page = product fetch + franchise fetch
+  + related-products fetch, no dedup). Wrap in React's `cache()` / `unstable_cache` before this gets
+  expensive at real traffic.
+- [ ] `Header` and `Footer` are monolithic client components for one small stateful bit each (search
+  input, newsletter input) — splitting each into a server shell + small client island would cut
+  shipped JS on every route, not just one page.
+- [ ] Account pages (`/account`, `/account/orders/[id]`) are 100% client-fetched (mount → auth →
+  orders, with a spinner the whole time) instead of server-rendering the read-mostly content — a
+  visible loading waterfall on every visit.
+- [ ] **Two browser-dependent QA passes never ran** — the Claude-in-Chrome extension wasn't connected
+  this session, so live checkout/FIB-dialog/cart/account UI testing and live dashboard product/
+  franchise create-edit-delete-filter testing were skipped entirely (code-level review only). A
+  throwaway admin account (`qa-temp-admin@kurdishtcg.test`) and customer account
+  (`qa-temp-customer@kurdishtcg.test`) were created in Supabase for this and are still there,
+  pending a re-run — delete them once that QA pass is done (or ask to have them deleted now).
+- [?] Returns/Shipping page copy (delivery timeframe, return window in days, which party pays return
+  shipping) is a reasonable draft, not the owner's actual policy — the real numbers were never
+  provided. Review and edit before this reads as a real policy to customers.
