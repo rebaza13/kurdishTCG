@@ -290,6 +290,22 @@ h1, h2, h3, h4, h5, h6 {
   --hero-card-shadow-hover: 0 44px 64px -26px color-mix(in srgb, #2d2b2b 60%, transparent);
   --hero-holo: linear-gradient(115deg, transparent 32%, rgba(255, 255, 255, 0.38) 48%, transparent 64%);
   --hero-holo-blend: normal;
+  /* Storefront rips like paper under a hot lamp: the leak and the burst are
+     accent-red, because white on a near-white page reads as nothing. */
+  --rip-leak: radial-gradient(
+    58% 120% at 50% 50%,
+    #fff 0%,
+    color-mix(in srgb, var(--color-accent) 85%, white) 38%,
+    transparent 76%
+  );
+  --rip-flash: radial-gradient(
+    46% 46% at 50% 44%,
+    color-mix(in srgb, var(--color-accent) 80%, white) 0%,
+    color-mix(in srgb, var(--color-accent) 55%, transparent) 38%,
+    transparent 72%
+  );
+  --rip-flash-blend: normal;
+  --rip-flash-peak: 0.58;
 }
 :root[data-theme="dark"] {
   --hero-stage-bg:
@@ -312,6 +328,24 @@ h1, h2, h3, h4, h5, h6 {
     transparent 70%
   );
   --hero-holo-blend: screen;
+  /* Neon Vault leaks cold light — the pack reads as a containment breach
+     rather than torn paper, and screen blending lets it blow out to white. */
+  --rip-leak: radial-gradient(
+    58% 120% at 50% 50%,
+    #f2fdff 0%,
+    color-mix(in srgb, #26d7ff 82%, transparent) 34%,
+    color-mix(in srgb, #8b5cff 60%, transparent) 58%,
+    transparent 78%
+  );
+  --rip-flash: radial-gradient(
+    52% 52% at 50% 44%,
+    #ffffff 0%,
+    color-mix(in srgb, #26d7ff 70%, transparent) 34%,
+    color-mix(in srgb, #8b5cff 45%, transparent) 56%,
+    transparent 76%
+  );
+  --rip-flash-blend: screen;
+  --rip-flash-peak: 1;
 }
 
 .hero-stage {
@@ -547,12 +581,17 @@ h1, h2, h3, h4, h5, h6 {
   .hero-stage__info { opacity: 1; transform: none; pointer-events: auto; }
 }
 
-/* Pack showcase — the hero's visual centerpiece. Three sealed packs fanned
-   like a hand, one-time entrance, fan spreads on hover/pointer-tilt. No
-   bordered card frame and no price/buy overlay: these are sealed packs, not
-   individually-priced singles, so nothing here should read as "buy this
-   exact item" the way the old single-card hero stage did. */
-.pack-stage {
+/* Pack rip hero — the headline is "Every pack could be the pull", so the hero
+   is the pull: drag the foil strip and the centre pack tears along a jagged
+   edge, leaks light, then bursts into the six franchise cards (each a link
+   into that franchise). --tear is driven 0→1 from the pointer by JS; every
+   tear-dependent value below reads it, so the gesture stays 1:1 with no
+   transitions in the drag path. The burst itself is CSS, keyed off
+   [data-phase="revealed"]. Foil flecks are canvas — see pack-rip-hero.tsx. */
+.rip {
+  --tear: 0;
+  --spread: 56px;
+  --card-w: 86px;
   position: relative;
   isolation: isolate;
   overflow: hidden;
@@ -566,109 +605,454 @@ h1, h2, h3, h4, h5, h6 {
   background-image: var(--hero-stage-bg);
   background-size: var(--hero-stage-bg-size);
 }
+/* Six cards spread to (2.5 * --spread) + --card-w / 2 either side of centre;
+   keep that inside the stage or the outer two get clipped on small phones. */
+@media (max-width: 430px) {
+  .rip {
+    --spread: 44px;
+    --card-w: 72px;
+  }
+}
 @media (min-width: 768px) {
-  .pack-stage {
-    min-height: 560px;
+  .rip {
+    --spread: 86px;
+    --card-w: 126px;
+    min-height: 620px;
   }
 }
 
-.pack-stage__group {
-  --rx: 0deg;
-  --ry: 0deg;
+.rip__scene {
   position: relative;
-  width: min(480px, 84vw);
-  height: 300px;
+  width: min(480px, 88vw);
+  height: 320px;
   perspective: 1400px;
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition: transform 0.2s ease-out;
-  will-change: transform;
+  transform-style: preserve-3d;
 }
 @media (min-width: 768px) {
-  .pack-stage__group {
-    height: 380px;
+  .rip__scene {
+    width: min(580px, 92%);
+    height: 420px;
   }
 }
 
-.pack-stage__item {
+/* — Sealed dressing: the two packs that don't rip — */
+.rip__side {
   position: absolute;
   bottom: 0;
   left: 50%;
   width: 150px;
   height: 244px;
+  z-index: 1;
   filter: drop-shadow(0 20px 28px color-mix(in srgb, #000 38%, transparent));
-  transition: transform 0.45s cubic-bezier(0.2, 0.8, 0.2, 1), filter 0.35s ease;
+  animation: rip-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
+  transition: transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease,
+    filter 0.6s ease;
 }
 @media (min-width: 768px) {
-  .pack-stage__item {
+  .rip__side {
     width: 190px;
     height: 308px;
   }
 }
-
-.pack-stage__item[data-side="center"] {
-  z-index: 3;
-  transform: translateX(-50%) rotate(-2deg);
-  animation: pack-enter-center 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
-}
-.pack-stage__item[data-side="start"] {
-  z-index: 2;
+.rip__side[data-side="start"] {
   transform: translateX(-126%) translateY(7%) rotate(-15deg);
-  animation: pack-enter-start 0.8s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
-.pack-stage__item[data-side="end"] {
-  z-index: 1;
+.rip__side[data-side="end"] {
   transform: translateX(26%) translateY(9%) rotate(14deg);
-  animation: pack-enter-end 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.16s both;
+  animation-delay: 0.16s;
+}
+/* Clear the stage for the pulls — they drop out of frame rather than linger
+   and compete with the fan */
+.rip[data-phase="revealed"] .rip__side {
+  /* The entrance fills forwards, and a filled animation outranks a plain
+     declaration — so it has to be cleared before the fade below can win.
+     Its end state matches the base rule, so dropping it doesn't jump. */
+  animation: none;
+  opacity: 0.14;
+  filter: saturate(0.3) brightness(0.75);
+}
+.rip[data-phase="revealed"] .rip__side[data-side="start"] {
+  transform: translateX(-176%) translateY(62%) rotate(-34deg);
+}
+.rip[data-phase="revealed"] .rip__side[data-side="end"] {
+  transform: translateX(76%) translateY(64%) rotate(34deg);
 }
 
-.pack-stage[data-hover] .pack-stage__item[data-side="center"] {
-  transform: translateX(-50%) translateY(-6%) rotate(-2deg) scale(1.04);
+/* — The pack that rips — */
+.rip__pack {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 150px;
+  height: 244px;
+  z-index: 3;
+  transform: translateX(-50%);
+  rotate: -2deg;
+  touch-action: none;
+  cursor: grab;
+  animation: rip-pack-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.08s both;
+  transition: rotate 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.8s ease, filter 0.8s ease;
 }
-.pack-stage[data-hover] .pack-stage__item[data-side="start"] {
-  transform: translateX(-142%) translateY(2%) rotate(-19deg);
+.rip__float {
+  position: absolute;
+  inset: 0;
+  animation: rip-float 5.5s ease-in-out 1s infinite;
 }
-.pack-stage[data-hover] .pack-stage__item[data-side="end"] {
-  transform: translateX(36%) translateY(4%) rotate(18deg);
+@media (min-width: 768px) {
+  .rip__pack {
+    width: 190px;
+    height: 308px;
+  }
 }
-.pack-stage[data-hover] .pack-stage__item {
-  filter: drop-shadow(0 30px 40px color-mix(in srgb, #000 46%, transparent));
+.rip[data-phase="tearing"] .rip__pack {
+  cursor: grabbing;
+}
+.rip[data-phase="tearing"] .rip__float {
+  animation-play-state: paused;
+}
+/* Spent wrapper: sinks behind the fan, desaturates, reads as discarded */
+.rip[data-phase="revealed"] .rip__float {
+  animation: none;
+}
+.rip[data-phase="revealed"] .rip__pack {
+  animation: none;
+  z-index: 1;
+  translate: 0 54px;
+  rotate: -7deg;
+  opacity: 0.22;
+  filter: saturate(0.35) brightness(0.75);
+  cursor: default;
+  transition: rotate 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+    translate 0.8s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.8s ease,
+    filter 0.8s ease;
 }
 
-@keyframes pack-enter-center {
-  from { opacity: 0; transform: translateX(-50%) translateY(26px) rotate(-2deg) scale(0.92); }
-  to { opacity: 1; transform: translateX(-50%) rotate(-2deg); }
+.rip__body,
+.rip__strip {
+  position: absolute;
+  inset: 0;
 }
-@keyframes pack-enter-start {
-  from { opacity: 0; transform: translateX(-126%) translateY(32px) rotate(-15deg) scale(0.9); }
-  to { opacity: 1; transform: translateX(-126%) translateY(7%) rotate(-15deg); }
+.rip__body {
+  z-index: 2;
 }
-@keyframes pack-enter-end {
-  from { opacity: 0; transform: translateX(26%) translateY(32px) rotate(14deg) scale(0.9); }
-  to { opacity: 1; transform: translateX(26%) translateY(9%) rotate(14deg); }
+/* The torn-off strip peels up and away, 1:1 with the drag */
+.rip__strip {
+  z-index: 3;
+  transform-origin: 50% 100%;
+  transform: translate(calc(var(--tear) * 78%), calc(var(--tear) * -52%))
+    rotate(calc(var(--tear) * 32deg));
+  /* Stays solid through the pull and only burns off over the last quarter,
+     so it doesn't leave a ghost parked in the corner. Opacity self-clamps. */
+  opacity: calc((1 - var(--tear)) * 4);
+  filter: drop-shadow(0 14px 20px color-mix(in srgb, #000 50%, transparent));
 }
 
-.pack-stage__caption {
+/* Light bleeding out of the opened seam. Sits *behind* the pack body (z 1 vs
+   2) so the body occludes it — only the part above the tear line escapes,
+   which is why it reaches well above the pack rather than hugging the seam. */
+.rip__leak {
+  position: absolute;
+  inset-inline: -16%;
+  top: -14%;
+  height: 42%;
+  z-index: 1;
+  pointer-events: none;
+  background: var(--rip-leak);
+  opacity: calc(var(--tear) * 1.2);
+  transform: scaleX(calc(0.5 + var(--tear) * 0.8))
+    scaleY(calc(0.4 + var(--tear) * 1.05));
+  filter: blur(calc(2px + var(--tear) * 12px));
+}
+/* Blown-out hot slit sitting on the tear line itself — the bloom above is
+   soft, this is the hard source it comes from. 70% down the leak box is
+   where the box's own geometry puts the seam. */
+.rip__leak::after {
+  content: "";
+  position: absolute;
+  inset-inline: 20%;
+  top: 67%;
+  height: 5%;
+  border-radius: 999px;
+  background: #fff;
+  filter: blur(3px);
+  opacity: calc(var(--tear) * 1.5);
+}
+
+/* Pull affordance — a real button, so tap and keyboard rip too */
+/* Reads as a real tear strip: perforation across the foil plus a grab tab
+   that nudges in the direction you're meant to pull. */
+.rip__grab {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 15.5%;
+  z-index: 4;
+  border: 0;
+  background: none;
+  padding: 0;
+  cursor: grab;
+  opacity: calc(1 - var(--tear) * 1.6);
+}
+.rip__grab-line {
+  position: absolute;
+  inset-inline: 5%;
+  bottom: 0;
+  height: 2px;
+  background: repeating-linear-gradient(90deg, #fff 0 5px, transparent 5px 11px);
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.95));
+}
+.rip__grab-tab {
+  position: absolute;
+  bottom: -11px;
+  inset-inline-end: 7%;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 22px;
+  border-radius: 999px;
+  background: #fff;
+  color: #14121a;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.55);
+  animation: rip-tab-nudge 1.8s ease-in-out infinite;
+}
+.rip__grab:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+/* The tab already flips edges via inset-inline-end; the cues it points with
+   have to flip too, or ar/ckb are told to pull the way they can't. */
+[dir="rtl"] .rip__grab-tab {
+  animation-name: rip-tab-nudge-rtl;
+}
+[dir="rtl"] .rip__grab-tab svg {
+  transform: scaleX(-1);
+}
+[dir="rtl"] .rip__strip {
+  transform: translate(calc(var(--tear) * -78%), calc(var(--tear) * -52%))
+    rotate(calc(var(--tear) * -32deg));
+}
+
+/* — The pulls — */
+.rip__pulls {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  transform-style: preserve-3d;
+}
+.rip__card {
+  position: absolute;
+  left: 50%;
+  bottom: 16%;
+  width: var(--card-w);
+  margin-inline-start: calc(var(--card-w) / -2);
+  aspect-ratio: 5 / 7;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: var(--border-width) solid var(--color-border-strong);
+  background: var(--color-surface-2);
+  box-shadow: var(--hero-card-shadow);
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
+  transition: transform 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity 0.45s ease, box-shadow 0.3s ease;
+  transition-delay: calc(var(--i) * 55ms);
+}
+.rip[data-phase="revealed"] .rip__card {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(
+      calc(var(--off) * var(--spread)),
+      calc(var(--off) * var(--off) * 9px - 44px),
+      0
+    )
+    rotate(calc(var(--off) * 11deg));
+}
+/* The hit: bigger, forward in Z, ringed in its franchise accent */
+.rip[data-phase="revealed"] .rip__card[data-hit] {
+  z-index: 5;
+  transform: translate3d(calc(var(--off) * var(--spread) * 0.5), -84px, 60px)
+    rotate(calc(var(--off) * 5deg)) scale(1.16);
+}
+.rip__card[data-hit] {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px var(--accent),
+    0 18px 40px -12px color-mix(in srgb, var(--accent) 70%, transparent);
+}
+.rip[data-phase="revealed"] .rip__card:hover {
+  box-shadow: 0 0 0 2px var(--accent),
+    0 22px 48px -10px color-mix(in srgb, var(--accent) 80%, transparent);
+}
+.rip__card:focus-visible {
+  outline: 3px solid var(--color-accent);
+  outline-offset: 3px;
+}
+
+.rip__card-art {
+  position: absolute;
+  inset: 0;
+}
+.rip__card-foil {
+  position: absolute;
+  inset: 0;
+  background: var(--hero-holo);
+  mix-blend-mode: var(--hero-holo-blend);
+  transform: translateX(-70%);
+}
+.rip[data-phase="revealed"] .rip__card-foil {
+  animation: rip-foil 2.8s ease-in-out infinite;
+  animation-delay: calc(var(--i) * 160ms);
+}
+.rip__card-name {
   position: absolute;
   inset-inline: 0;
   bottom: 0;
-  z-index: 3;
-  padding: 0.875rem;
+  padding: 0.75rem 0.25rem 0.3rem;
   text-align: center;
+  font-family: var(--font-heading);
+  font-weight: var(--font-heading-weight);
+  font-size: 0.5rem;
+  line-height: 1.1;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #fff;
+  /* Franchise-tinted footer: pulls six unrelated box shots into one set */
+  background: linear-gradient(
+    to top,
+    color-mix(in srgb, var(--accent) 88%, #000) 0%,
+    color-mix(in srgb, var(--accent) 60%, transparent) 58%,
+    transparent 100%
+  );
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+@media (min-width: 768px) {
+  .rip__card-name {
+    font-size: 0.5625rem;
+  }
+}
+
+/* — Burst dressing — */
+.rip__flecks {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.rip__flash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  background: var(--rip-flash);
+  mix-blend-mode: var(--rip-flash-blend);
+}
+.rip[data-phase="revealed"] .rip__flash {
+  animation: rip-flash 0.65s ease-out both;
+}
+
+/* — HUD — */
+.rip__hud {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.875rem;
+  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
+  border-top: var(--border-width) solid var(--color-border);
+}
+.rip__hint,
+.rip__caption,
+.rip__again {
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
   font-size: 0.75rem;
   text-transform: uppercase;
   letter-spacing: 0.12em;
-  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
-  border-top: var(--border-width) solid var(--color-border);
+}
+.rip__caption {
+  color: var(--color-text-muted);
+}
+.rip__caption::before {
+  content: "·";
+  margin-inline-end: 1rem;
+}
+@media (max-width: 479px) {
+  .rip__caption {
+    display: none;
+  }
+}
+.rip__again {
+  border: var(--border-width) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  padding: 0.3rem 0.8rem;
+  cursor: pointer;
+  background: none;
+  color: var(--color-text);
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.rip__again:hover {
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+@keyframes rip-enter {
+  from { opacity: 0; translate: 0 30px; scale: 0.9; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes rip-pack-enter {
+  from { opacity: 0; translate: 0 26px; scale: 0.92; }
+  to { opacity: 1; translate: 0 0; scale: 1; }
+}
+@keyframes rip-float {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -10px; }
+}
+@keyframes rip-tab-nudge {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
+}
+@keyframes rip-tab-nudge-rtl {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-8px); }
+}
+@keyframes rip-foil {
+  0%, 100% { transform: translateX(-70%); }
+  50% { transform: translateX(70%); }
+}
+@keyframes rip-flash {
+  0% { opacity: 0; transform: scale(0.75); }
+  14% { opacity: var(--rip-flash-peak); transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.5); }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .pack-stage__item {
+  .rip__side,
+  .rip__pack,
+  .rip__float,
+  .rip__grab-tab,
+  .rip__card-foil,
+  .rip__flash {
     animation: none;
+  }
+  .rip__side,
+  .rip__pack {
     opacity: 1;
   }
-  .pack-stage__group {
+  .rip__card {
+    transition-duration: 0.01ms;
+    transition-delay: 0ms;
+  }
+  .rip__strip,
+  .rip__leak {
     transition: none;
   }
 }

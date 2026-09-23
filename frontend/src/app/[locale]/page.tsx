@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { FranchiseTile } from "@/components/franchise-tile";
-import { PackShowcase } from "@/components/pack-showcase";
+import { PackRipHero } from "@/components/pack-rip-hero";
 import { ProductCard } from "@/components/product-card";
 import { getFeaturedProducts, getFranchises } from "@/lib/data";
 import { localizedAlternates } from "@/lib/seo";
@@ -132,7 +132,7 @@ export default async function HomePage({
           </span>
         </div>
         <div className="order-1 md:order-2">
-          <PackShowcase caption={t("heroBadge")} />
+          <PackRipHero franchises={franchises} caption={t("heroBadge")} />
         </div>
        </div>
       </section>

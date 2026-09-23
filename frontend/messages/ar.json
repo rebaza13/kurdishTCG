@@ -42,7 +42,12 @@
     "heroBadge": "من أربيل",
     "heroHoverHint": "مرّر المؤشر فوق البطاقة لمعاينتها",
     "heroTapHint": "اضغط على البطاقة لفتحها",
-    "heroViewCard": "عرض البطاقة"
+    "heroViewCard": "عرض البطاقة",
+    "ripHint": "اسحب الغلاف — افتح العبوة",
+    "ripPulling": "واصل السحب…",
+    "ripAgain": "افتح عبوة أخرى",
+    "ripAria": "اسحب الغلاف لفتح عبوة البوستر",
+    "ripRevealed": "ستة عوالم. سحبة واحدة."
   },
   "franchises": {
     "kicker": "جميع الفئات",

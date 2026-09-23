@@ -42,7 +42,12 @@
     "heroBadge": "Sourced · Erbil",
     "heroHoverHint": "Hover the card to inspect it",
     "heroTapHint": "Tap the card to open it",
-    "heroViewCard": "View card"
+    "heroViewCard": "View card",
+    "ripHint": "Pull the foil — rip it open",
+    "ripPulling": "Keep pulling…",
+    "ripAgain": "Rip another",
+    "ripAria": "Pull the foil to rip the booster pack open",
+    "ripRevealed": "Six worlds. One pull."
   },
   "franchises": {
     "kicker": "All franchises",
