@@ -3,11 +3,10 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import {
-  archivo,
-  ibmPlexSans,
+  bricolageGrotesque,
+  jetbrainsMono,
   notoKufiArabic,
   notoSansArabic,
-  spaceGrotesk,
 } from "@/app/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BottomNav } from "@/components/bottom-nav";
@@ -55,13 +54,13 @@ export default async function LocaleLayout({
       lang={locale}
       dir={dir}
       suppressHydrationWarning
-      className={`${archivo.variable} ${spaceGrotesk.variable} ${ibmPlexSans.variable} ${notoKufiArabic.variable} ${notoSansArabic.variable}`}
+      className={`${bricolageGrotesque.variable} ${jetbrainsMono.variable} ${notoKufiArabic.variable} ${notoSansArabic.variable}`}
     >
       <body className="font-body antialiased">
         <ThemeProvider>
           <NextIntlClientProvider>
             {/* pb clears the floating <BottomNav /> (phone + tablet only) */}
-            <div className="flex min-h-screen flex-col pb-[calc(6rem+env(safe-area-inset-bottom))] xl:pb-0">
+            <div className="flex min-h-screen flex-col pb-[calc(6rem+env(safe-area-inset-bottom))] min-[760px]:pb-0">
               <Header />
               <main className="flex-1">{children}</main>
               <Footer />

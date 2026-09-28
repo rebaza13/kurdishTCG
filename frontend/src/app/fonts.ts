@@ -1,29 +1,25 @@
 import {
-  Archivo,
-  Space_Grotesk,
-  IBM_Plex_Sans,
+  Bricolage_Grotesque,
+  JetBrains_Mono,
   Noto_Kufi_Arabic,
   Noto_Sans_Arabic,
 } from "next/font/google";
 
-export const archivo = Archivo({
+// The whole site — headings and body alike — runs on one display face, per
+// the KurdishTCG design (see the "Bundled Page" mockup this was extracted
+// from). Variable font: no discrete `weight` list, so 400–800 all resolve
+// from the one file.
+export const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["400", "600", "800"],
-  variable: "--font-archivo",
+  variable: "--font-bricolage",
   display: "swap",
 });
 
-export const spaceGrotesk = Space_Grotesk({
+// Mono accents only: kickers, prices, chips, the spinning ring label.
+export const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["500", "700"],
-  variable: "--font-space-grotesk",
-  display: "swap",
-});
-
-export const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-ibm-plex",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 

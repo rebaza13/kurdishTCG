@@ -1,343 +1,250 @@
 "use client";
 
 import Image from "next/image";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
 import type { Franchise } from "@tcg/types";
 
-// Placeholder pack art — not tied to live inventory yet. The centre pack is
-// the one that rips; the outer two are sealed dressing that clears out of the
-// way on burst.
+// The three packs on the stage — same local art whichever franchises are
+// live, since this is a demo rip, not a real per-SKU unboxing.
 const SIDE_PACKS = [
-  { src: "/packs/pokemon-30th-celebration.png", alt: "Pokémon 30th Celebration booster pack", side: "start" as const },
-  { src: "/packs/pokemon-perfect-order.png", alt: "Pokémon Mega Evolution Perfect Order booster pack", side: "end" as const },
-];
+  { src: "/packs/pokemon-30th-celebration.png", alt: "Pokémon 30th Celebration booster pack", dir: -1 },
+  { src: "/packs/pokemon-perfect-order.png", alt: "Pokémon Mega Evolution Perfect Order booster pack", dir: 1 },
+] as const;
 const HERO_PACK = {
   src: "/packs/riftbound-vendetta.png",
   alt: "Riftbound: League of Legends Vendetta booster pack",
 };
 
-// Jagged foil tear, generated once so both halves share an exact edge: the
-// top strip is clipped above the zigzag, the pack body below it.
-const TEETH = 22;
-const TEAR_Y = 15.5;
-const TEAR_AMP = 1.4;
-const TEAR_PTS = Array.from({ length: TEETH + 1 }, (_, i) => {
-  const x = (i / TEETH) * 100;
-  const y = TEAR_Y + (i % 2 ? TEAR_AMP : -TEAR_AMP);
-  return `${x.toFixed(2)}% ${y.toFixed(2)}%`;
-});
-const CLIP_TOP = `polygon(0% 0%, 100% 0%, ${[...TEAR_PTS].reverse().join(", ")})`;
-const CLIP_BODY = `polygon(${TEAR_PTS.join(", ")}, 100% 100%, 0% 100%)`;
+type Twinkle = { top?: string; bottom?: string; left?: string; right?: string; size: number; color: string; delay: string; dur: string };
+const TWINKLES: Twinkle[] = [
+  { top: "20%", left: "14%", size: 14, color: "var(--color-accent)", delay: "0s", dur: "2.4s" },
+  { top: "14%", right: "16%", size: 9, color: "var(--color-text)", delay: "0.6s", dur: "3s" },
+  { bottom: "26%", right: "11%", size: 16, color: "#d4a106", delay: "1.1s", dur: "2.7s" },
+  { bottom: "20%", left: "10%", size: 10, color: "#2f5bea", delay: "0.3s", dur: "3.2s" },
+];
 
-const DRAG_PX = 165; // pointer travel for a full rip
-const COMMIT_AT = 0.5; // release past this and it finishes on its own
+// Five burst positions (x offset unit, y px, rotation deg) — index 2 is the
+// hit: dead centre, bigger, ringed and glowing.
+const BURST_POS: Array<[number, number, number]> = [
+  [-2, 40, -20],
+  [-1, 4, -10],
+  [0, -18, 0],
+  [1, 4, 10],
+  [2, 40, 20],
+];
+const RARITY_COMMON = ["common", "uncommon", "rare", "common"] as const;
+const RARITY_HIT = ["secret", "ultra", "holo"] as const;
 
-type Phase = "sealed" | "tearing" | "revealed";
-
-type Fleck = {
-  x: number;
-  y: number;
-  vx: number;
-  vy: number;
-  size: number;
-  rot: number;
-  vr: number;
-  color: string;
-  life: number;
-  decay: number;
-};
+type Phase = "idle" | "shaking" | "open";
+type BurstCard = { franchise: Franchise; hit: boolean; rarityKey: string; transform: string; z: number; delay: number };
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-// Franchise accents arrive as `var(--color-riftbound)`, which canvas can't
-// parse — it silently falls back to black. Resolve against the live theme so
-// the flecks also recolour when the Neon Vault palette takes over.
-function resolveColor(value: string) {
-  const name = value.match(/^var\((--[\w-]+)\)$/)?.[1];
-  if (!name) return value;
-  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || "#ffffff";
-}
-
-export function PackRipHero({ franchises, caption }: { franchises: Franchise[]; caption: string }) {
+export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
   const t = useTranslations("home");
+  const rarityT = useTranslations("rarity");
   const stageRef = useRef<HTMLDivElement>(null);
-  const packRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const tiltRef = useRef<HTMLDivElement>(null);
+  const shakeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const [phase, setPhase] = useState<Phase>("sealed");
-  const phaseRef = useRef<Phase>("sealed");
-  const progress = useRef(0);
-  const dragging = useRef(false);
-  const startX = useRef(0);
-  const moved = useRef(0);
-  const raf = useRef(0);
-  const flecks = useRef<Fleck[]>([]);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [burst, setBurst] = useState<BurstCard[]>([]);
+  const [pulled, setPulled] = useState<{ rarityKey: string; name: string } | null>(null);
 
-  const cards = franchises.slice(0, 6);
+  const cards = useMemo(() => franchises.slice(0, 6), [franchises]);
+  const open = phase === "open";
 
-  const setPhaseBoth = useCallback((next: Phase) => {
-    phaseRef.current = next;
-    setPhase(next);
-  }, []);
-
-  const setTear = useCallback((p: number) => {
-    progress.current = p;
-    stageRef.current?.style.setProperty("--tear", p.toFixed(3));
-  }, []);
-
-  // Foil flecks shed from the tear line. Canvas rather than DOM nodes so a
-  // couple hundred of them cost one paint instead of one layout each.
-  const spawnFlecks = useCallback(() => {
-    const stage = stageRef.current;
-    const pack = packRef.current;
-    const canvas = canvasRef.current;
-    if (!stage || !pack || !canvas) return;
-
-    const stageRect = stage.getBoundingClientRect();
-    const packRect = pack.getBoundingClientRect();
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = stageRect.width * dpr;
-    canvas.height = stageRect.height * dpr;
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    const originX = packRect.left - stageRect.left + packRect.width / 2;
-    const originY = packRect.top - stageRect.top + packRect.height * (TEAR_Y / 100);
-    const palette = [...cards.map((c) => resolveColor(c.accent)), "#ffffff", "#ffd76a"];
-
-    for (let i = 0; i < 170; i++) {
-      const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.35;
-      const speed = 3 + Math.random() * 11;
-      flecks.current.push({
-        x: originX + (Math.random() - 0.5) * packRect.width * 0.85,
-        y: originY + (Math.random() - 0.5) * 14,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        size: 2 + Math.random() * 6,
-        rot: Math.random() * Math.PI,
-        vr: (Math.random() - 0.5) * 0.4,
-        color: palette[(Math.random() * palette.length) | 0],
-        life: 1,
-        decay: 0.006 + Math.random() * 0.012,
+  const rip = useCallback(() => {
+    if (phase !== "idle" || cards.length === 0) return;
+    setPhase("shaking");
+    const run = () => {
+      const stageW = stageRef.current?.offsetWidth ?? 600;
+      const spread = Math.min(stageW * 0.19, 130);
+      const shuffled = [...cards].sort(() => Math.random() - 0.5);
+      const hitRarity = RARITY_HIT[Math.floor(Math.random() * RARITY_HIT.length)];
+      const next: BurstCard[] = BURST_POS.map(([x, y, r], i) => {
+        const f = shuffled[i % shuffled.length];
+        const hit = i === 2;
+        return {
+          franchise: f,
+          hit,
+          rarityKey: hit ? hitRarity : RARITY_COMMON[i > 2 ? i - 1 : i],
+          z: hit ? 7 : 6 - Math.abs(x),
+          transform: `translate(-50%,-50%) translate(${x * spread}px,${y}px) rotate(${r}deg) scale(${hit ? 1.14 : 1})`,
+          delay: i * 0.07,
+        };
       });
-    }
-
-    cancelAnimationFrame(raf.current);
-    const tick = () => {
-      ctx.clearRect(0, 0, stageRect.width, stageRect.height);
-      let alive = false;
-      for (const f of flecks.current) {
-        if (f.life <= 0) continue;
-        alive = true;
-        f.vy += 0.32; // gravity
-        f.vx *= 0.986; // air drag
-        f.vy *= 0.986;
-        f.x += f.vx;
-        f.y += f.vy;
-        f.rot += f.vr;
-        f.life -= f.decay;
-
-        ctx.save();
-        ctx.translate(f.x, f.y);
-        ctx.rotate(f.rot);
-        ctx.globalAlpha = Math.max(f.life, 0);
-        ctx.fillStyle = f.color;
-        // Squash on rotation so each fleck reads as tumbling foil, not a dot.
-        ctx.fillRect(-f.size / 2, -f.size / 4, f.size, f.size * (0.35 + Math.abs(Math.cos(f.rot)) * 0.65));
-        ctx.restore();
-      }
-      if (alive) {
-        raf.current = requestAnimationFrame(tick);
-      } else {
-        flecks.current = [];
-        ctx.clearRect(0, 0, stageRect.width, stageRect.height);
-      }
+      setBurst(next);
+      setPulled({ rarityKey: hitRarity, name: shuffled[2].name });
+      setPhase("open");
     };
-    raf.current = requestAnimationFrame(tick);
-  }, [cards]);
+    if (prefersReducedMotion()) run();
+    else shakeTimer.current = setTimeout(run, 650);
+  }, [phase, cards]);
 
-  const finish = useCallback(() => {
-    if (phaseRef.current === "revealed") return;
-    setTear(1);
-    setPhaseBoth("revealed");
-    if (!prefersReducedMotion()) spawnFlecks();
-  }, [setTear, setPhaseBoth, spawnFlecks]);
+  const reseal = useCallback(() => {
+    clearTimeout(shakeTimer.current);
+    setPhase("idle");
+    setBurst([]);
+    setPulled(null);
+  }, []);
 
-  // Tap/keyboard path: run the tear itself so the burst still reads as a rip
-  // rather than a cut.
-  const autoRip = useCallback(() => {
-    if (phaseRef.current === "revealed") return;
-    if (prefersReducedMotion()) {
-      finish();
-      return;
-    }
-    setPhaseBoth("tearing");
-    const from = progress.current;
-    const start = performance.now();
-    const dur = 420 * (1 - from);
-    cancelAnimationFrame(raf.current);
-    const step = (now: number) => {
-      const k = Math.min((now - start) / dur, 1);
-      setTear(from + (1 - from) * (1 - Math.pow(1 - k, 3)));
-      if (k < 1) raf.current = requestAnimationFrame(step);
-      else finish();
-    };
-    raf.current = requestAnimationFrame(step);
-  }, [setTear, setPhaseBoth, finish]);
+  useEffect(() => () => clearTimeout(shakeTimer.current), []);
 
-  const springBack = useCallback(() => {
-    const from = progress.current;
-    const start = performance.now();
-    cancelAnimationFrame(raf.current);
-    const step = (now: number) => {
-      const k = Math.min((now - start) / 320, 1);
-      setTear(from * (1 - (1 - Math.pow(1 - k, 3))));
-      if (k < 1) raf.current = requestAnimationFrame(step);
-      else setPhaseBoth("sealed");
-    };
-    raf.current = requestAnimationFrame(step);
-  }, [setTear, setPhaseBoth]);
+  const onStageMove = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
+    if (!tiltRef.current) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    const dx = (e.clientX - r.left) / r.width - 0.5;
+    const dy = (e.clientY - r.top) / r.height - 0.5;
+    tiltRef.current.style.transform = `perspective(1100px) rotateY(${dx * 16}deg) rotateX(${-dy * 12}deg)`;
+  }, []);
+  const onStageLeave = useCallback(() => {
+    if (tiltRef.current) tiltRef.current.style.transform = "";
+  }, []);
 
-  const onPointerDown = useCallback(
-    (e: React.PointerEvent) => {
-      if (phaseRef.current === "revealed") return;
-      e.currentTarget.setPointerCapture(e.pointerId);
-      dragging.current = true;
-      startX.current = e.clientX;
-      moved.current = 0;
-      cancelAnimationFrame(raf.current);
-      setPhaseBoth("tearing");
-    },
-    [setPhaseBoth]
-  );
-
-  const onPointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!dragging.current) return;
-      // Absolute distance, so the gesture works pulling either way — which
-      // also keeps it natural in the RTL locales.
-      const dx = Math.abs(e.clientX - startX.current);
-      moved.current = Math.max(moved.current, dx);
-      const p = Math.min(dx / DRAG_PX, 1);
-      setTear(p);
-      if (p >= 1) {
-        dragging.current = false;
-        finish();
-      }
-    },
-    [setTear, finish]
-  );
-
-  const onPointerUp = useCallback(() => {
-    if (!dragging.current) return;
-    dragging.current = false;
-    if (moved.current < 8) autoRip();
-    else if (progress.current >= COMMIT_AT) autoRip();
-    else springBack();
-  }, [autoRip, springBack]);
-
-  const reset = useCallback(() => {
-    cancelAnimationFrame(raf.current);
-    flecks.current = [];
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext("2d");
-    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
-    setTear(0);
-    setPhaseBoth("sealed");
-  }, [setTear, setPhaseBoth]);
-
-  useEffect(() => () => cancelAnimationFrame(raf.current), []);
-
-  const hint =
-    phase === "revealed" ? t("ripRevealed") : phase === "tearing" ? t("ripPulling") : t("ripHint");
+  const centerAnim =
+    phase === "idle"
+      ? "kt-float 5s ease-in-out infinite"
+      : phase === "shaking"
+        ? "kt-shake 0.65s ease-in-out both"
+        : "kt-pack-away 0.6s ease-in forwards";
 
   return (
-    <div ref={stageRef} className="rip" data-phase={phase}>
-      <canvas ref={canvasRef} className="rip__flecks" aria-hidden />
-      <div className="rip__flash" aria-hidden />
-
-      <div className="rip__scene">
-        {SIDE_PACKS.map((p) => (
-          <div key={p.src} className="rip__side" data-side={p.side} aria-hidden>
-            <Image src={p.src} alt="" fill sizes="(max-width: 768px) 30vw, 180px" className="object-contain" />
-          </div>
-        ))}
-
-        <div
-          ref={packRef}
-          className="rip__pack"
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-        >
-          {/* Idle float lives on its own element so pausing it during a drag
-              can't also freeze the pack's entrance animation. */}
-          <div className="rip__float">
-            <div className="rip__leak" aria-hidden />
-
-            <div className="rip__body" style={{ clipPath: CLIP_BODY }}>
-              <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 768px) 46vw, 230px" className="object-contain" priority />
-            </div>
-
-            <div className="rip__strip" style={{ clipPath: CLIP_TOP }} aria-hidden>
-              <Image src={HERO_PACK.src} alt="" fill sizes="(max-width: 768px) 46vw, 230px" className="object-contain" />
-            </div>
-          </div>
-
-          <button type="button" className="rip__grab" onClick={autoRip} aria-label={t("ripAria")}>
-            <span className="rip__grab-line" aria-hidden />
-            <span className="rip__grab-tab" aria-hidden>
-              <svg viewBox="0 0 24 16" width="20" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M7 3l5 5-5 5M14 3l5 5-5 5" />
-              </svg>
-            </span>
-          </button>
+    <section className="kt-hero">
+      <div className="kt-hero__copy">
+        <div className="kt-hero__kicker">
+          <span className="kt-hero__kicker-dot" aria-hidden />
+          <span>{t("heroKicker")}</span>
         </div>
-
-        <div className="rip__pulls">
-          {cards.map((f, i) => (
-            <Link
-              key={f.slug}
-              href={`/franchises/${f.slug}`}
-              className="rip__card"
-              data-hit={i === 2 ? "" : undefined}
-              style={
-                {
-                  "--i": i,
-                  "--off": i - (cards.length - 1) / 2,
-                  "--accent": f.accent,
-                } as React.CSSProperties
-              }
-              tabIndex={phase === "revealed" ? undefined : -1}
-              aria-hidden={phase === "revealed" ? undefined : true}
-            >
-              <span className="rip__card-art">
-                <Image src={f.image} alt="" fill sizes="150px" className="object-cover" />
-              </span>
-              <span className="rip__card-foil" aria-hidden />
-              <span className="rip__card-name">{f.name}</span>
+        <h1 className="kt-hero__title">
+          <span>{t("heroLine1")}</span>
+          <span>{t("heroLine2")}</span>
+          <span className="kt-hero__title-pull">
+            <span className="kt-hero__title-accent">{t("heroLine3Highlight")}</span>
+            <span className="kt-hero__foil-chip" aria-hidden>
+              <span />
+            </span>
+          </span>
+        </h1>
+        <p className="kt-hero__desc">{t("heroTitleSecondary")}</p>
+        <div className="kt-hero__chips">
+          {cards.map((f) => (
+            <Link key={f.slug} href={`/franchises/${f.slug}`} className="kt-hero__chip">
+              <span className="kt-hero__chip-swatch" style={{ background: f.accent }} aria-hidden />
+              <span>{f.name}</span>
             </Link>
           ))}
         </div>
+        <div className="kt-hero__ctas">
+          <Link href="/franchises?sort=newest" className="kt-btn-primary">
+            <span>{t("shopNow")}</span>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </Link>
+          <Link href="/franchises" className="kt-btn-outline">
+            {t("browseFranchises")}
+          </Link>
+        </div>
       </div>
 
-      <div className="rip__hud">
-        <span className="rip__hint" aria-live="polite">
-          {hint}
-        </span>
-        <span className="rip__caption">{caption}</span>
-        {phase === "revealed" && (
-          <button type="button" className="rip__again" onClick={reset}>
-            {t("ripAgain")}
+      <div className="kt-hero__stage-wrap">
+        <div ref={stageRef} className="kt-stage" onMouseMove={onStageMove} onMouseLeave={onStageLeave}>
+          <div className="kt-stage__grid" aria-hidden />
+          <div className="kt-stage__disc" aria-hidden />
+          <div className="kt-stage__ring" aria-hidden>
+            <svg viewBox="0 0 200 200">
+              <defs>
+                <path id="kt-ring-path" d="M100,100 m-88,0 a88,88 0 1,1 176,0 a88,88 0 1,1 -176,0" />
+              </defs>
+              <text fill="currentColor">
+                <textPath href="#kt-ring-path">{t("stageRing").repeat(2)}</textPath>
+              </text>
+            </svg>
+          </div>
+          {TWINKLES.map((tw, i) => (
+            <span
+              key={i}
+              className="kt-twinkle"
+              aria-hidden
+              style={{
+                top: tw.top,
+                left: tw.left,
+                right: tw.right,
+                bottom: tw.bottom,
+                width: tw.size,
+                height: tw.size,
+                background: tw.color,
+                animationDelay: tw.delay,
+                animationDuration: tw.dur,
+              }}
+            />
+          ))}
+
+          <div ref={tiltRef} className="kt-tilt">
+            {SIDE_PACKS.map((p) => (
+              <div
+                key={p.src}
+                className="kt-pack-side"
+                style={{
+                  transform: `translate(-50%,-50%) translateX(${p.dir * (open ? 115 : 68)}%) rotate(${p.dir * (open ? 24 : 13)}deg)`,
+                  opacity: open ? 0.35 : 1,
+                }}
+              >
+                <div className="kt-pack-side__float">
+                  <Image src={p.src} alt={p.alt} fill sizes="(max-width: 480px) 34vw, 230px" className="object-contain" />
+                </div>
+              </div>
+            ))}
+
+            <button type="button" className="kt-pack-center" onClick={rip} aria-label={t("ripAria")}>
+              <div className="kt-pack-center__inner" style={{ animation: centerAnim }}>
+                <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 480px) 42vw, 270px" className="object-contain" priority />
+                <span className="kt-pack-center__sheen" aria-hidden />
+              </div>
+            </button>
+
+            {open && (
+              <>
+                <span className="kt-burst-flash" aria-hidden />
+                {burst.map((c, i) => (
+                  <Link
+                    key={`${c.franchise.slug}-${i}`}
+                    href={`/franchises/${c.franchise.slug}`}
+                    className="kt-burst-card"
+                    data-hit={c.hit || undefined}
+                    style={{ transform: c.transform, zIndex: c.z, animationDelay: `${c.delay}s` }}
+                  >
+                    <div className="kt-burst-card__art" style={{ background: c.franchise.accent }}>
+                      <Image src={c.franchise.image} alt="" fill sizes="140px" className="object-cover" />
+                      <span className="kt-burst-card__sheen" aria-hidden />
+                      <span className="kt-burst-card__rarity">{rarityT(c.rarityKey)}</span>
+                    </div>
+                  </Link>
+                ))}
+                {pulled && (
+                  <div className="kt-pulled-pill">
+                    <span className="kt-pulled-pill__rarity">{rarityT(pulled.rarityKey).toUpperCase()}</span>
+                    <span>{t("pulledPrefix", { name: pulled.name })}</span>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="kt-stage__foot">
+          <span className="kt-stage__hint">{t("ripKicker")}</span>
+          <button type="button" className="kt-rip-btn" onClick={open ? reseal : rip}>
+            <span className="kt-rip-btn__dot" aria-hidden />
+            <span>{open ? t("ripBtnReseal") : t("ripBtnRip")}</span>
           </button>
-        )}
+        </div>
       </div>
-    </div>
+    </section>
   );
 }

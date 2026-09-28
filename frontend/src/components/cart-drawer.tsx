@@ -9,17 +9,24 @@ import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
 import { cartSubtotal, useCartCount, useCartStore } from "@/lib/cart-store";
 
-/** Desktop header trigger. The drawer itself is mounted once, in `Header`. */
+/**
+ * Desktop header trigger. The drawer itself is mounted once, in `Header`.
+ * The badge keeps a stable id — the home page's add-to-cart flying-dot
+ * animation targets it directly by DOM id rather than threading a ref
+ * across component boundaries.
+ */
 export function CartButton() {
   const toggle = useCartStore((s) => s.toggle);
   const t = useTranslations("cart");
   const count = useCartCount();
 
   return (
-    <Button type="button" variant="secondary" size="md" onClick={toggle}>
-      <ShoppingBag className="size-4" />
-      {t("title")} {count > 0 ? `· ${count}` : ""}
-    </Button>
+    <button type="button" className="kt-cart-btn" onClick={toggle}>
+      <span>{t("title")}</span>
+      <span id="header-cart-badge" className="kt-cart-badge">
+        {count}
+      </span>
+    </button>
   );
 }
 
