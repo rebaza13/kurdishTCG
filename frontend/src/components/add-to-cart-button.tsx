@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { ShoppingBag, Check } from "lucide-react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { useCartStore } from "@/lib/cart-store";
+import { flyToCart } from "@/lib/fly-to-cart";
 import type { Product } from "@tcg/types";
 
 export function AddToCartButton({
@@ -19,6 +20,7 @@ export function AddToCartButton({
 } & Pick<ButtonProps, "size" | "variant" | "className">) {
   const t = useTranslations("product");
   const addItem = useCartStore((s) => s.addItem);
+  const showToast = useCartStore((s) => s.showToast);
   const [justAdded, setJustAdded] = useState(false);
 
   return (
@@ -28,8 +30,10 @@ export function AddToCartButton({
       variant={variant}
       className={className}
       disabled={product.stock <= 0}
-      onClick={() => {
+      onClick={(e) => {
         addItem(product, quantity);
+        showToast(`${t("addedToCart")} · ${product.name}`);
+        flyToCart(e.currentTarget);
         setJustAdded(true);
         window.setTimeout(() => setJustAdded(false), 1600);
       }}

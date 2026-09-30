@@ -15,14 +15,17 @@ const NAV_ITEMS = [
   { href: "/sell", key: "sellToUs" },
 ] as const;
 
-export function Header() {
-  const t = useTranslations("nav");
+function Logo() {
   const meta = useTranslations("meta");
-  const router = useRouter();
-  const [query, setQuery] = useState("");
-
-  const logo = (
-    <Link href="/" className="text-lg font-heading font-[var(--font-heading-weight)] tracking-tight">
+  return (
+    <Link
+      href="/"
+      className="flex items-center gap-2.5 text-lg font-heading font-[var(--font-heading-weight)] tracking-tight"
+    >
+      <span className="relative block h-[22px] w-[19px] flex-none">
+        <span className="absolute inset-0 rotate-[-10deg] rounded-[4px] bg-[var(--color-text)]" />
+        <span className="absolute inset-0 translate-x-[3px] rotate-[8deg] rounded-[4px] bg-[var(--color-accent)]" />
+      </span>
       {meta("siteName").split(/(TCG)/i).map((part, i) =>
         /^tcg$/i.test(part) ? (
           <span key={i} className="text-[var(--color-accent)]">
@@ -34,12 +37,18 @@ export function Header() {
       )}
     </Link>
   );
+}
+
+export function Header() {
+  const t = useTranslations("nav");
+  const router = useRouter();
+  const [query, setQuery] = useState("");
 
   return (
-    <header className="sticky top-0 z-30 border-b-[length:var(--border-width)] border-[var(--color-border-strong)] bg-[color-mix(in_srgb,var(--color-bg)_78%,transparent)] backdrop-blur-xl backdrop-saturate-150 xl:bg-[var(--color-bg)] xl:backdrop-blur-none">
+    <header className="sticky top-0 z-30 border-b-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-glass)] backdrop-blur-xl backdrop-saturate-150">
       {/* Phone + tablet: slim bar, navigation lives in <BottomNav /> */}
       <div className="mx-auto flex h-14 max-w-[1440px] items-center justify-between gap-3 px-4 md:px-10 xl:hidden">
-        {logo}
+        <Logo />
         <div className="flex items-center gap-1.5">
           <LocaleSwitcher />
           <ThemeToggle />
@@ -47,15 +56,15 @@ export function Header() {
       </div>
 
       {/* Laptop + desktop */}
-      <div className="mx-auto hidden max-w-[1440px] items-center gap-6 px-10 py-3.5 xl:flex">
-        {logo}
+      <div className="mx-auto hidden max-w-[1440px] items-center gap-6 px-10 py-3 xl:flex">
+        <Logo />
 
-        <nav className="flex items-center gap-6 text-sm">
+        <nav className="flex items-center gap-1 text-[15px] font-medium">
           {NAV_ITEMS.map((item) => (
             <Link
               key={item.key}
               href={item.href as `/${string}`}
-              className="whitespace-nowrap text-[var(--color-text)] hover:text-[var(--color-accent)]"
+              className="whitespace-nowrap rounded-[var(--radius-full)] px-3.5 py-2 text-[var(--color-text)] transition-colors hover:bg-[var(--color-surface)] hover:text-[var(--color-text)]"
             >
               {t(item.key)}
             </Link>
@@ -64,18 +73,18 @@ export function Header() {
 
         <form
           role="search"
-          className="ms-auto flex w-[260px] items-center gap-2 border-[length:var(--border-width)] border-[var(--color-border)] px-3 py-2 rounded-[var(--radius-xs)]"
+          className="ms-auto flex h-11 w-[260px] items-center gap-2.5 rounded-[var(--radius-full)] bg-[var(--color-surface)] px-4 text-[var(--color-text-muted)]"
           onSubmit={(e) => {
             e.preventDefault();
             if (query.trim()) router.push(`/search?q=${encodeURIComponent(query.trim())}`);
           }}
         >
-          <Search className="size-3.5 text-[var(--color-text-muted)]" />
+          <Search className="size-4 flex-none" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="w-full bg-transparent text-xs outline-none placeholder:text-[var(--color-text-muted)]"
+            className="w-full min-w-0 bg-transparent text-sm text-[var(--color-text)] outline-none placeholder:text-[var(--color-text-muted)]"
           />
         </form>
 
@@ -83,7 +92,7 @@ export function Header() {
           <LocaleSwitcher />
           <ThemeToggle />
           <Link href="/account">
-            <Button type="button" variant="ghost" size="icon" aria-label={t("account")}>
+            <Button type="button" variant="ghost" size="icon" className="border-[length:var(--border-width)] border-[var(--color-border)]" aria-label={t("account")}>
               <User className="size-4" />
             </Button>
           </Link>

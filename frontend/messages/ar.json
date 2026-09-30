@@ -1,6 +1,6 @@
 {
   "meta": {
-    "siteName": "KurdishTCG",
+    "siteName": "IraqTCG",
     "tagline": "إصدارات بطاقات تداول حقيقية، تُشحن من أربيل."
   },
   "nav": {
@@ -25,7 +25,7 @@
   },
   "home": {
     "heroKicker": "إصدارات جديدة أسبوعيًا",
-    "heroTitle": "كل عبوة قد تكون سحبتك الكبرى.",
+    "heroTitle": "بطاقات مفردة وعبوات مغلقة، <accent>كل الفئات المتاحة</accent>.",
     "heroTitleSecondary": "عبوات وصناديق مغلقة، بالدينار العراقي.",
     "heroSubtitle": "ريفت باوند، ناروتو، ديزني لوركانا، أفاتار، سبونج بوب وزوتوبيا — تُشحن من أربيل.",
     "shopNow": "تسوق الوصول الجديد",
@@ -35,14 +35,19 @@
     "statCash": "الدفع عند التسليم",
     "statCashValue": "نقدًا",
     "franchisesKicker": "تسوق حسب الفئة",
-    "franchisesTitle": "ستة عوالم، رفّ واحد.",
-    "featuredKicker": "مميز",
-    "featuredTitle": "سحوبات هذا الأسبوع",
+    "franchisesTitle": "كل العوالم، رفّ واحد.",
+    "packsKicker": "المتجر الكامل",
+    "packsTitle": "كل العبوات المتوفرة.",
     "viewAll": "عرض الكل",
     "heroBadge": "من أربيل",
     "heroHoverHint": "مرّر المؤشر فوق البطاقة لمعاينتها",
     "heroTapHint": "اضغط على البطاقة لفتحها",
     "heroViewCard": "عرض البطاقة",
+    "ripInstruction": "اضغط على العبوة — مزّقها لفتحها",
+    "ripPack": "افتح عبوة",
+    "sealPack": "أغلق عبوة جديدة",
+    "youPulled": "لقد سحبت {name}",
+    "newsletterKicker": "رسالة واحدة أسبوعيًا",
     "ripHint": "اسحب الغلاف — افتح العبوة",
     "ripPulling": "واصل السحب…",
     "ripAgain": "افتح عبوة أخرى",
@@ -56,6 +61,7 @@
     "cards": "منتج",
     "sets": "مجموعة",
     "from": "ابتداءً من",
+    "shop": "تسوق {name}",
     "outOfStock": "التخزين قريبًا",
     "comingSoonTitle": "فئات جديدة قادمة قريبًا.",
     "comingSoonBody": "نضيف فئات جديدة مع وصول بضائع جديدة — انضم للقائمة لتكون أول من يعلم."

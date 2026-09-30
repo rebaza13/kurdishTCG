@@ -1,6 +1,6 @@
 {
   "meta": {
-    "siteName": "KurdishTCG",
+    "siteName": "IraqTCG",
     "tagline": "Real trading card releases, sourced and shipped from Erbil."
   },
   "nav": {
@@ -25,7 +25,7 @@
   },
   "home": {
     "heroKicker": "New drops weekly",
-    "heroTitle": "Every pack could be the pull.",
+    "heroTitle": "Sealed and single cards, <accent>every franchise deep</accent>.",
     "heroTitleSecondary": "Sealed boxes and booster packs, priced in dinars.",
     "heroSubtitle": "Riftbound, Naruto, Disney Lorcana, Avatar, SpongeBob and Zootopia — sourced and shipped from Erbil.",
     "shopNow": "Shop new arrivals",
@@ -35,14 +35,19 @@
     "statCash": "payment on delivery",
     "statCashValue": "Cash",
     "franchisesKicker": "Shop by franchise",
-    "franchisesTitle": "Six worlds, one shelf.",
-    "featuredKicker": "Featured",
-    "featuredTitle": "This week's pulls",
+    "franchisesTitle": "Every world, one shelf.",
+    "packsKicker": "Full catalog",
+    "packsTitle": "Every pack in stock.",
     "viewAll": "View all",
     "heroBadge": "Sourced · Erbil",
     "heroHoverHint": "Hover the card to inspect it",
     "heroTapHint": "Tap the card to open it",
     "heroViewCard": "View card",
+    "ripInstruction": "Tap the pack — rip it open",
+    "ripPack": "Rip a pack",
+    "sealPack": "Seal a new pack",
+    "youPulled": "You pulled {name}",
+    "newsletterKicker": "One email a week",
     "ripHint": "Pull the foil — rip it open",
     "ripPulling": "Keep pulling…",
     "ripAgain": "Rip another",
@@ -56,6 +61,7 @@
     "cards": "items",
     "sets": "sets",
     "from": "from",
+    "shop": "Shop {name}",
     "outOfStock": "Restocking soon",
     "comingSoonTitle": "More franchises are on the way.",
     "comingSoonBody": "We're onboarding new franchises as new stock comes in — join the list to hear first."

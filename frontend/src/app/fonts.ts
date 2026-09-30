@@ -1,34 +1,26 @@
 import {
-  Archivo,
-  Space_Grotesk,
-  IBM_Plex_Sans,
+  Bricolage_Grotesque,
+  JetBrains_Mono,
   Noto_Kufi_Arabic,
   Noto_Sans_Arabic,
 } from "next/font/google";
 
-export const archivo = Archivo({
+export const bricolageGrotesque = Bricolage_Grotesque({
   subsets: ["latin"],
-  weight: ["400", "600", "800"],
-  variable: "--font-archivo",
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-bricolage",
   display: "swap",
 });
 
-export const spaceGrotesk = Space_Grotesk({
+export const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   weight: ["500", "700"],
-  variable: "--font-space-grotesk",
+  variable: "--font-jetbrains-mono",
   display: "swap",
 });
 
-export const ibmPlexSans = IBM_Plex_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
-  variable: "--font-ibm-plex",
-  display: "swap",
-});
-
-// Arabic-script pairing used for ar/ckb (Sorani Kurdish) — Archivo, Space
-// Grotesk and IBM Plex Sans above only cover Latin, so ar/ckb overrides
+// Arabic-script pairing used for ar/ckb (Sorani Kurdish) — Bricolage
+// Grotesque and JetBrains Mono above only cover Latin, so ar/ckb overrides
 // --font-heading/--font-body to these in globals.css regardless of theme.
 export const notoKufiArabic = Noto_Kufi_Arabic({
   subsets: ["arabic"],

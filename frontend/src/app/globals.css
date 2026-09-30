@@ -1,115 +1,118 @@
 @import "tailwindcss";
 
-/* KurdishTCG design tokens: two full design systems, not one system
-   with an inverted palette. Light is the flat, zero-radius Archivo
-   Modernist storefront look. Dark is the rounded, gradient-accented
-   Neon Vault look (Space Grotesk headings, IBM Plex Sans body). See
-   .claude/CLAUDE.md for the source mockups. Components read the
-   semantic tokens below so switching data-theme swaps the whole
-   aesthetic, not just colors. */
+/* KurdishTCG design tokens — "Rip it open": a warm cream-and-red storefront
+   built around Bricolage Grotesque + JetBrains Mono, pill radii and a
+   paper-cut drop shadow. One design language for both themes — dark mode
+   swaps the palette (cream → ink, paper → charcoal) but keeps the same
+   radius, shadow and type scale, so switching data-theme never reflows the
+   page, only recolors it. Components read the semantic tokens below. */
 
 :root {
-  /* — Storefront (light) — */
-  --color-bg: #f3f2f2;
-  --color-surface: #eae9e9;
+  --color-bg: #f5f2ec;
+  --color-surface: #eae5dc;
   --color-surface-2: #ffffff;
-  --color-text: #201e1d;
-  --color-text-muted: color-mix(in srgb, #201e1d 55%, transparent);
-  --color-border: color-mix(in srgb, #201e1d 18%, transparent);
-  --color-border-strong: #201e1d;
+  --color-text: #17140f;
+  --color-text-muted: #675f55;
+  --color-border: rgba(23, 20, 15, 0.12);
+  --color-border-strong: #17140f;
 
-  --color-accent: #ec3013;
+  --color-accent: #d8331a;
   --color-accent-ink: #ffffff;
-  --color-accent-secondary: #1150d4;
-  --color-accent-tertiary: #0f8a6b;
+  --color-accent-secondary: #2f5bea;
+  --color-accent-tertiary: #0e9f6e;
   --gradient-primary: var(--color-accent);
   --gradient-text: var(--color-accent);
 
-  --color-neutral-100: #f8f4f4;
-  --color-neutral-200: #eae7e7;
-  --color-neutral-300: #d7d3d3;
-  --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
-  --color-neutral-700: #605d5d;
-  --color-neutral-800: #444141;
-  --color-neutral-900: #2d2b2b;
+  --color-neutral-100: #faf8f4;
+  --color-neutral-200: #eae5dc;
+  --color-neutral-300: #dad3c6;
+  --color-neutral-400: #b8ae9c;
+  --color-neutral-500: #948a76;
+  --color-neutral-600: #675f55;
+  --color-neutral-700: #4a443b;
+  --color-neutral-800: #2e2a23;
+  --color-neutral-900: #17140f;
 
-  --color-accent-100: #fff2ef;
-  --color-accent-200: #ffe0d9;
-  --color-accent-300: #ffc4b8;
-  --color-accent-400: #ff9783;
-  --color-accent-500: #ff563c;
-  --color-accent-600: #dd2b0f;
-  --color-accent-700: #ae1800;
-  --color-accent-800: #7c1405;
-  --color-accent-900: #4d170e;
+  --color-accent-100: #fbeae4;
+  --color-accent-200: #f4dcd2;
+  --color-accent-300: #f0b7a6;
+  --color-accent-400: #e8846a;
+  --color-accent-500: #d8331a;
+  --color-accent-600: #b82912;
+  --color-accent-700: #8f1f0d;
+  --color-accent-800: #661609;
+  --color-accent-900: #3d0d05;
 
   /* Per-franchise accents — same perceptual weight, distinct hue */
-  --color-riftbound: #1150d4;
-  --color-naruto: #e8850c;
-  --color-lorcana: #7a3fd1;
-  --color-avatar: #0f8a6b;
-  --color-spongebob: #b8860b;
-  --color-zootopia: #c23b1f;
+  --color-riftbound: #2f5bea;
+  --color-naruto: #e8700f;
+  --color-lorcana: #7b3fe4;
+  --color-avatar: #0e9f6e;
+  --color-spongebob: #c99a06;
+  --color-zootopia: #d8342a;
 
-  --font-heading: var(--font-archivo), system-ui, sans-serif;
-  --font-body: var(--font-archivo), system-ui, sans-serif;
+  --color-shadow: rgba(60, 35, 15, 0.28);
+  --color-hero-disc: #f4dcd2;
+  --color-glass: rgba(245, 242, 236, 0.78);
+
+  --font-heading: var(--font-bricolage), system-ui, sans-serif;
+  --font-body: var(--font-bricolage), system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, monospace;
   --font-heading-weight: 800;
+  --font-heading-leading: 0.98;
+  --font-heading-tracking: -0.03em;
 
-  --radius-xs: 0px;
-  --radius-sm: 0px;
-  --radius-md: 0px;
-  --radius-lg: 0px;
-  --radius-full: 0px;
+  --radius-xs: 10px;
+  --radius-sm: 14px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
+  --radius-full: 999px;
 
-  --shadow-sm: 0 1px 2px color-mix(in srgb, #2d2b2b 14%, transparent);
-  --shadow-md: 0 3px 10px color-mix(in srgb, #2d2b2b 16%, transparent);
-  --shadow-lg: 0 12px 32px color-mix(in srgb, #2d2b2b 22%, transparent);
+  --shadow-sm: 0 4px 14px var(--color-shadow);
+  --shadow-md: 0 20px 40px -16px var(--color-shadow);
+  --shadow-lg: 0 30px 60px -20px var(--color-shadow);
 
-  --border-width: 2px;
+  --border-width: 1px;
 
-  /* Storefront keeps hard edges — image meets the card body on a rule */
   --image-fade: none;
   --image-overlap: 0px;
 }
 
 :root[data-theme="dark"] {
-  /* — Neon Vault (dark) — */
-  --color-bg: #0a0a12;
-  --color-surface: #12111f;
-  --color-surface-2: #141327;
-  --color-text: #eceaf5;
-  --color-text-muted: #8b84b8;
-  --color-border: #221f38;
-  --color-border-strong: #302c4d;
+  --color-bg: #11100e;
+  --color-surface: #26241f;
+  --color-surface-2: #1b1a17;
+  --color-text: #f2eee7;
+  --color-text-muted: #a39b8d;
+  --color-border: rgba(242, 238, 231, 0.12);
+  --color-border-strong: #f2eee7;
 
-  --color-accent: #8b5cff;
-  --color-accent-ink: #0a0a12;
-  --color-accent-secondary: #26d7ff;
-  --color-accent-tertiary: #ff4ecd;
-  --gradient-primary: linear-gradient(92deg, #8b5cff, #26d7ff);
-  --gradient-text: linear-gradient(92deg, #8b5cff, #26d7ff, #ff4ecd, #8b5cff);
+  --color-accent: #e8462b;
+  --color-accent-ink: #ffffff;
+  --color-accent-secondary: #4f80ff;
+  --color-accent-tertiary: #2fcf9f;
+  --gradient-primary: var(--color-accent);
+  --gradient-text: var(--color-accent);
 
-  --color-neutral-100: #12111f;
-  --color-neutral-200: #171628;
-  --color-neutral-300: #221f38;
-  --color-neutral-400: #302c4d;
-  --color-neutral-500: #4a4470;
-  --color-neutral-600: #655e93;
-  --color-neutral-700: #8b84b8;
-  --color-neutral-800: #c2bde0;
-  --color-neutral-900: #eceaf5;
+  --color-neutral-100: #17140f;
+  --color-neutral-200: #1b1a17;
+  --color-neutral-300: #26241f;
+  --color-neutral-400: #35322a;
+  --color-neutral-500: #4a453b;
+  --color-neutral-600: #675f55;
+  --color-neutral-700: #a39b8d;
+  --color-neutral-800: #c9c2b4;
+  --color-neutral-900: #f2eee7;
 
-  --color-accent-100: #1a1730;
-  --color-accent-200: #241f45;
-  --color-accent-300: #392f6e;
-  --color-accent-400: #5c48a8;
-  --color-accent-500: #8b5cff;
-  --color-accent-600: #a578ff;
-  --color-accent-700: #c2a3ff;
-  --color-accent-800: #ddc9ff;
-  --color-accent-900: #f2eaff;
+  --color-accent-100: #2a140d;
+  --color-accent-200: #35190f;
+  --color-accent-300: #661609;
+  --color-accent-400: #8f1f0d;
+  --color-accent-500: #d8331a;
+  --color-accent-600: #e8552f;
+  --color-accent-700: #f0846a;
+  --color-accent-800: #f7b7a6;
+  --color-accent-900: #fbe0d5;
 
   --color-riftbound: #4f80ff;
   --color-naruto: #ff9d3d;
@@ -118,39 +121,23 @@
   --color-spongebob: #f5c14a;
   --color-zootopia: #ff6a4d;
 
-  --font-heading: var(--font-space-grotesk), system-ui, sans-serif;
-  --font-body: var(--font-ibm-plex), system-ui, sans-serif;
-  --font-heading-weight: 700;
-
-  --radius-xs: 10px;
-  --radius-sm: 12px;
-  --radius-md: 16px;
-  --radius-lg: 18px;
-  --radius-full: 999px;
-
-  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.45);
-  --shadow-md: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.6);
-
-  --border-width: 1px;
-
-  /* Neon Vault dissolves the photo into the panel instead of cutting it */
-  --image-fade: linear-gradient(
-    to top,
-    var(--color-surface) 0%,
-    color-mix(in srgb, var(--color-surface) 70%, transparent) 22%,
-    transparent 58%
-  );
-  --image-overlap: 2.75rem;
+  --color-shadow: rgba(0, 0, 0, 0.6);
+  --color-hero-disc: #35190f;
+  --color-glass: rgba(17, 16, 14, 0.74);
 }
 
 /* Arabic-script pairing for ar/ckb (Sorani Kurdish), regardless of theme.
-   Equal specificity to the :root[data-theme] blocks above and placed
-   after them, so it wins on cascade order in both light and dark. */
+   Equal specificity to the :root[data-theme] block above and placed
+   after it, so it wins on cascade order in both light and dark. */
 :root[lang="ar"],
 :root[lang="ckb"] {
-  --font-heading: var(--font-noto-kufi), var(--font-archivo), system-ui, sans-serif;
-  --font-body: var(--font-noto-sans-arabic), var(--font-archivo), system-ui, sans-serif;
+  --font-heading: var(--font-noto-kufi), var(--font-bricolage), system-ui, sans-serif;
+  --font-body: var(--font-noto-sans-arabic), var(--font-bricolage), system-ui, sans-serif;
+  /* Noto Kufi's taller diacritics and descenders collide under the Latin
+     display type's tight leading, and negative tracking crowds its
+     letterforms — loosen both instead of tuning every heading per-locale. */
+  --font-heading-leading: 1.3;
+  --font-heading-tracking: 0em;
 }
 
 @theme inline {
@@ -195,6 +182,7 @@
 
   --font-heading: var(--font-heading);
   --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
 
   --radius-xs: var(--radius-xs);
   --radius-sm: var(--radius-sm);
@@ -213,6 +201,7 @@
 
 html {
   color-scheme: light;
+  overflow-x: hidden;
 }
 html[data-theme="dark"] {
   color-scheme: dark;
@@ -222,14 +211,15 @@ body {
   background: var(--color-bg);
   color: var(--color-text);
   font-family: var(--font-body);
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: background-color 0.35s ease, color 0.35s ease;
+  overflow-x: hidden;
 }
 
 h1, h2, h3, h4, h5, h6 {
   font-family: var(--font-heading);
   font-weight: var(--font-heading-weight);
-  line-height: 1.12;
-  letter-spacing: -0.02em;
+  line-height: var(--font-heading-leading);
+  letter-spacing: var(--font-heading-tracking);
 }
 
 .gradient-text {
@@ -247,7 +237,8 @@ h1, h2, h3, h4, h5, h6 {
   outline-offset: 2px;
 }
 ::selection {
-  background: color-mix(in srgb, var(--color-accent) 30%, transparent);
+  background: var(--color-accent);
+  color: #fff;
 }
 
 .text-muted {
@@ -257,14 +248,25 @@ h1, h2, h3, h4, h5, h6 {
 /* One-time entrance for content that should settle in on load rather than
    mount instantly. Stagger with an inline `animation-delay`. */
 @keyframes reveal-up {
-  from { opacity: 0; transform: translateY(14px); }
+  from { opacity: 0; transform: translateY(28px); }
   to { opacity: 1; transform: translateY(0); }
 }
 .reveal {
-  animation: reveal-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: reveal-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 @media (prefers-reduced-motion: reduce) {
   .reveal { animation: none; opacity: 1; transform: none; }
+}
+
+/* Scroll-triggered reveal — see `useScrollReveal` in lib/use-scroll-reveal.ts.
+   Elements start hidden only once JS has confirmed it can observe them, so
+   content never gets stuck invisible without a working IntersectionObserver. */
+[data-reveal="pending"] {
+  opacity: 0;
+  transform: translateY(40px);
+}
+[data-reveal="shown"] {
+  animation: reveal-up 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both;
 }
 
 .hr {
@@ -370,215 +372,129 @@ h1, h2, h3, h4, h5, h6 {
     display: grid;
     place-items: center;
   }
+/* Shared motion vocabulary — the pack-rip hero, franchise ticker, product
+   grid and toasts all draw from this set. */
+@keyframes float {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50% { transform: translateY(-14px) rotate(1deg); }
 }
-
-.hero-stage__fan {
-  position: absolute;
-  inset: 3rem 1.5rem 4.5rem;
-  z-index: 1;
-  pointer-events: none;
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
 }
-.hero-fan-card {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  translate: -50% -50%;
-  width: min(230px, 48vw);
-  aspect-ratio: 5 / 7;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-border);
-  background: var(--color-neutral-200);
-  box-shadow: var(--hero-card-shadow);
-  opacity: 0.85;
-  transition: transform 0.6s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.4s ease;
-  animation: hero-fan-enter 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+@keyframes holo-sweep {
+  0% { background-position: 130% 0; }
+  100% { background-position: -130% 0; }
 }
-.hero-fan-card[data-side="start"] {
-  transform: translateX(-52%) translateY(6%) rotate(-12deg) scale(0.92);
-  animation-delay: 0.05s;
+@keyframes pack-shake {
+  0%, 100% { transform: rotate(0); }
+  15% { transform: rotate(-6deg) translateX(-8px); }
+  35% { transform: rotate(6deg) translateX(8px) scale(1.03); }
+  55% { transform: rotate(-5deg) translateX(-6px) scale(1.06); }
+  75% { transform: rotate(4deg) translateX(5px) scale(1.09); }
 }
-.hero-fan-card[data-side="end"] {
-  transform: translateX(52%) translateY(6%) rotate(12deg) scale(0.92);
-  animation-delay: 0.15s;
+@keyframes pack-away {
+  0% { transform: scale(1.09); }
+  100% { transform: translateY(-80%) rotate(-14deg) scale(0.6); opacity: 0; }
 }
-@media (max-width: 767px) {
-  .hero-fan-card { width: min(190px, 40vw); }
-  .hero-fan-card[data-side="start"] {
-    transform: translateX(-58%) translateY(8%) rotate(-12deg) scale(0.9);
-  }
-  .hero-fan-card[data-side="end"] {
-    transform: translateX(58%) translateY(8%) rotate(12deg) scale(0.9);
-  }
+@keyframes burst-in {
+  from { transform: translate(-50%, -50%) scale(0.15) rotate(0); opacity: 0; }
 }
-.hero-stage[data-hover] .hero-fan-card[data-side="start"] {
-  transform: translateX(-66%) translateY(9%) rotate(-17deg) scale(0.9);
-  opacity: 0.55;
+@keyframes flash-out {
+  0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0.95; }
+  100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0; }
 }
-.hero-stage[data-hover] .hero-fan-card[data-side="end"] {
-  transform: translateX(66%) translateY(9%) rotate(17deg) scale(0.9);
-  opacity: 0.55;
+@keyframes marquee {
+  to { transform: translateX(-50%); }
 }
-
-.hero-card {
-  --rx: 0deg;
-  --ry: 0deg;
-  --mx: 50%;
-  --my: 50%;
-  position: relative;
-  z-index: 2;
-  display: block;
-  width: min(300px, 62vw);
-  aspect-ratio: 5 / 7;
-  border-radius: var(--radius-md);
-  outline-offset: 8px;
-  animation:
-    hero-card-enter 0.8s cubic-bezier(0.16, 1, 0.3, 1) both,
-    hero-float 7s ease-in-out 0.8s infinite;
+@keyframes marquee-rtl {
+  to { transform: translateX(50%); }
 }
-.hero-stage[data-hover] .hero-card {
-  /* Pause only the idle float (2nd animation); the one-time entrance
-     already finished by the time a hover is possible. */
-  animation-play-state: running, paused;
+@keyframes twinkle {
+  0%, 100% { opacity: 0.1; transform: rotate(45deg) scale(0.5); }
+  50% { opacity: 1; transform: rotate(45deg) scale(1); }
 }
-.hero-card__tilt {
-  position: absolute;
-  inset: 0;
-  transform-style: preserve-3d;
-  transform: rotateX(var(--rx)) rotateY(var(--ry));
-  transition: transform 0.18s ease-out;
-  will-change: transform;
+@keyframes dot-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent); }
+  100% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--color-accent) 0%, transparent); }
 }
-.hero-card__face {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  border-radius: var(--radius-md);
-  border: var(--border-width) solid var(--color-border);
-  background: var(--color-neutral-200);
-  box-shadow: var(--hero-card-shadow);
-  transition: box-shadow 0.35s ease;
+@keyframes toast-in {
+  from { opacity: 0; transform: translate(-50%, 24px) scale(0.96); }
 }
-.hero-stage[data-hover] .hero-card__face {
-  box-shadow: var(--hero-card-shadow-hover);
-}
-.hero-card__holo,
-.hero-card__glare {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-.hero-card__holo {
-  background: var(--hero-holo);
-  background-size: 220% 220%;
-  background-position: var(--mx) var(--my);
-  mix-blend-mode: var(--hero-holo-blend);
-}
-.hero-card__glare {
-  background: radial-gradient(
-    circle at var(--mx) var(--my),
-    rgba(255, 255, 255, 0.34),
-    transparent 46%
-  );
-  mix-blend-mode: overlay;
-}
-.hero-stage[data-hover] .hero-card__holo,
-.hero-stage[data-hover] .hero-card__glare {
-  opacity: 1;
-}
-
-.hero-stage__info {
-  position: relative;
-  z-index: 3;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
-  width: min(280px, 100%);
-  padding: 0.9rem 1rem;
-  background: color-mix(in srgb, var(--color-bg) 88%, transparent);
-  backdrop-filter: blur(10px);
-  border: var(--border-width) solid var(--color-border);
-  border-radius: var(--radius-sm);
-  opacity: 0;
-  transform: translateY(8px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  pointer-events: none;
-}
-.hero-stage__info[data-show] {
-  opacity: 1;
-  transform: none;
-  pointer-events: auto;
-}
-@media (min-width: 768px) {
-  .hero-stage__info {
-    position: absolute;
-    inset-inline-start: 1.5rem;
-    top: 1.5rem;
-  }
-}
-.hero-stage__name {
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: 1.05rem;
-  line-height: 1.2;
-}
-.hero-stage__set {
-  font-size: 0.75rem;
-  color: var(--color-text-muted);
-}
-.hero-stage__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-top: 0.5rem;
-  padding-top: 0.6rem;
-  border-top: var(--border-width) solid var(--color-border);
-}
-.hero-stage__cta {
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: 0.7rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  color: var(--color-accent);
-}
-.hero-stage__caption {
-  position: absolute;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 3;
-  padding: 0.875rem;
-  text-align: center;
-  font-family: var(--font-heading);
-  font-weight: var(--font-heading-weight);
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  background: color-mix(in srgb, var(--color-bg) 90%, transparent);
-  border-top: var(--border-width) solid var(--color-border);
-}
-
-@keyframes hero-float {
-  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
-  50% { transform: translateY(-8px) rotate(1deg); }
-}
-@keyframes hero-card-enter {
-  from { opacity: 0; transform: translateY(28px) rotate(-6deg); scale: 0.9; }
-  to { opacity: 1; transform: translateY(0) rotate(-1.5deg); scale: 1; }
-}
-@keyframes hero-fan-enter {
-  from { opacity: 0; scale: 0.75; }
-  to { opacity: 0.85; scale: 1; }
+@keyframes pulled-glow {
+  0%, 100% { box-shadow: 0 0 0 3px var(--color-accent), 0 10px 30px color-mix(in srgb, var(--color-accent) 45%, transparent); }
+  50% { box-shadow: 0 0 0 3px var(--color-accent), 0 10px 70px color-mix(in srgb, var(--color-accent) 85%, transparent); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .hero-card, .hero-fan-card { animation: none; opacity: 1; scale: 1; }
-  .hero-card__tilt, .hero-fan-card, .hero-stage__info { transition: none; }
+  .pack-float, .animate-spin-slow, .pack-holo, .pack-twinkle, .animate-dot-pulse {
+    animation: none !important;
+  }
 }
-@media (hover: none) {
-  .hero-stage__info { opacity: 1; transform: none; pointer-events: auto; }
+
+/* Pack-rip hero stage — see components/hero-card-stage.tsx */
+.pack-stage {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-2);
+  border: var(--border-width) solid var(--color-border);
+}
+.pack-stage__grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--color-border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-border) 1px, transparent 1px);
+  background-size: 44px 44px;
+  opacity: 0.6;
+}
+.pack-stage__disc {
+  position: absolute;
+  left: 50%;
+  top: 48%;
+  width: min(78%, 500px);
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: var(--color-hero-disc);
+}
+.pack-holo {
+  background: linear-gradient(110deg, transparent 35%, rgba(255, 255, 255, 0.55) 50%, transparent 65%);
+  background-size: 300% 100%;
+  mix-blend-mode: overlay;
+}
+
+/* Marquee ticker band */
+.ticker {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+.ticker__track {
+  display: flex;
+  width: max-content;
+  animation: marquee 32s linear infinite;
+}
+:root[dir="rtl"] .ticker__track {
+  animation-name: marquee-rtl;
+}
+
+/* Franchise showcase — six-panel hover accordion (desktop only) */
+.franchise-panel {
+  position: relative;
+  flex: 1 1 0%;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  transition: flex 0.75s cubic-bezier(0.2, 0.85, 0.2, 1);
+}
+.franchise-panel[data-active="true"] {
+  flex: 4.2 1 0%;
+}
+.franchise-panel__img {
+  transition: transform 1.1s cubic-bezier(0.2, 0.85, 0.2, 1);
 }
 
 /* Pack rip hero — the headline is "Every pack could be the pull", so the hero
@@ -1062,6 +978,10 @@ h1, h2, h3, h4, h5, h6 {
    the same tokens the Neon Vault (dark) theme uses to dissolve a photo into
    its panel instead of cutting it. In the flat Storefront (light) theme
    both tokens are no-ops, so the strip just sits in its own row. */
+/* Product gallery — framed image + optional thumbnail strip. Rides on the
+   --image-fade / --image-overlap tokens so a theme that wants the photo to
+   dissolve into its panel instead of being cut can opt in without touching
+   this component. */
 .product-gallery {
   position: relative;
   overflow: hidden;

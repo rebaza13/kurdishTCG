@@ -144,7 +144,7 @@ export async function POST(request: Request) {
     try {
       payment = await createFibPayment({
         amount: Math.round(total),
-        description: `KurdishTCG order #${orderId.slice(0, 8).toUpperCase()}`,
+        description: `IraqTCG order #${orderId.slice(0, 8).toUpperCase()}`,
         callbackUrl: `${siteUrl()}/api/fib/webhook`,
         redirectUrl: `${siteUrl()}/${locale}/account/orders/${orderId}`,
       });

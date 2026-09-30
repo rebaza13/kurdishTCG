@@ -3,16 +3,16 @@ import { NextIntlClientProvider, hasLocale } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import {
-  archivo,
-  ibmPlexSans,
+  bricolageGrotesque,
+  jetbrainsMono,
   notoKufiArabic,
   notoSansArabic,
-  spaceGrotesk,
 } from "@/app/fonts";
 import { ThemeProvider } from "@/components/theme-provider";
 import { BottomNav } from "@/components/bottom-nav";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/footer";
+import { CartToast } from "@/components/cart-drawer";
 import { locales, localeDirection, type Locale } from "@/i18n/routing";
 import "@/app/globals.css";
 
@@ -55,7 +55,7 @@ export default async function LocaleLayout({
       lang={locale}
       dir={dir}
       suppressHydrationWarning
-      className={`${archivo.variable} ${spaceGrotesk.variable} ${ibmPlexSans.variable} ${notoKufiArabic.variable} ${notoSansArabic.variable}`}
+      className={`${bricolageGrotesque.variable} ${jetbrainsMono.variable} ${notoKufiArabic.variable} ${notoSansArabic.variable}`}
     >
       <body className="font-body antialiased">
         <ThemeProvider>
@@ -67,6 +67,7 @@ export default async function LocaleLayout({
               <Footer />
             </div>
             <BottomNav />
+            <CartToast />
           </NextIntlClientProvider>
         </ThemeProvider>
       </body>

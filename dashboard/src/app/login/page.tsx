@@ -36,7 +36,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm p-6">
         <div className="mb-6">
           <div className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-            KurdishTCG
+            IraqTCG
           </div>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight">Admin sign in</h1>
           <p className="mt-1 text-sm text-muted">

@@ -8,6 +8,7 @@ import type { CartItem, Product } from "@tcg/types";
 interface CartState {
   items: CartItem[];
   isOpen: boolean;
+  toast: string | null;
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
@@ -15,13 +16,17 @@ interface CartState {
   open: () => void;
   close: () => void;
   toggle: () => void;
+  showToast: (message: string) => void;
 }
+
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
       isOpen: false,
+      toast: null,
       addItem: (product, quantity = 1) => {
         const items = get().items;
         const existing = items.find((i) => i.productId === product.id);
@@ -32,7 +37,6 @@ export const useCartStore = create<CartState>()(
                 ? { ...i, stock: product.stock, quantity: Math.min(i.quantity + quantity, product.stock) }
                 : i
             ),
-            isOpen: true,
           });
         } else {
           set({
@@ -49,7 +53,6 @@ export const useCartStore = create<CartState>()(
                 quantity: Math.min(quantity, product.stock),
               },
             ],
-            isOpen: true,
           });
         }
       },
@@ -70,6 +73,11 @@ export const useCartStore = create<CartState>()(
       open: () => set({ isOpen: true }),
       close: () => set({ isOpen: false }),
       toggle: () => set({ isOpen: !get().isOpen }),
+      showToast: (message) => {
+        clearTimeout(toastTimer);
+        set({ toast: message });
+        toastTimer = setTimeout(() => set({ toast: null }), 2200);
+      },
     }),
     { name: "kurdishtcg-cart", partialize: (state) => ({ items: state.items }) }
   )

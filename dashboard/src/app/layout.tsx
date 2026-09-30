@@ -3,8 +3,8 @@ import { AuthProvider } from "@/lib/auth";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "KurdishTCG Admin",
-  description: "Orders, products and franchises for the KurdishTCG storefront.",
+  title: "IraqTCG Admin",
+  description: "Orders, products and franchises for the IraqTCG storefront.",
   robots: { index: false, follow: false },
 };
 

@@ -3,7 +3,7 @@
 import Image from "next/image";
 import * as Dialog from "@radix-ui/react-dialog";
 import { useTranslations } from "next-intl";
-import { Minus, Plus, ShoppingBag, X } from "lucide-react";
+import { Check, Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
@@ -16,10 +16,37 @@ export function CartButton() {
   const count = useCartCount();
 
   return (
-    <Button type="button" variant="secondary" size="md" onClick={toggle}>
-      <ShoppingBag className="size-4" />
-      {t("title")} {count > 0 ? `· ${count}` : ""}
-    </Button>
+    <button
+      type="button"
+      onClick={toggle}
+      className="flex h-11 cursor-pointer items-center gap-2.5 rounded-[var(--radius-full)] bg-[var(--color-text)] py-0 pe-2 ps-4.5 font-heading text-sm font-[var(--font-heading-weight)] text-[var(--color-bg)] transition-transform hover:-translate-y-0.5"
+    >
+      <span>{t("title")}</span>
+      <span
+        data-cart-target
+        className="grid h-[30px] min-w-[30px] place-items-center rounded-[var(--radius-full)] bg-[var(--color-accent)] px-2 font-mono text-xs text-white [font-variant-numeric:tabular-nums]"
+      >
+        {count}
+      </span>
+    </button>
+  );
+}
+
+/** Bottom-center pill toast for quick add-to-cart feedback — see cart-store's `showToast`. */
+export function CartToast() {
+  const toast = useCartStore((s) => s.toast);
+  if (!toast) return null;
+
+  return (
+    <div
+      className="fixed inset-x-0 bottom-[max(1.75rem,calc(6.5rem+env(safe-area-inset-bottom)))] z-[80] mx-auto flex w-fit max-w-[calc(100vw-24px)] items-center gap-3 rounded-[var(--radius-full)] bg-[var(--color-text)] py-2.5 ps-2.5 pe-4.5 text-sm font-medium text-[var(--color-bg)] shadow-[var(--shadow-lg)] xl:bottom-7"
+      style={{ animation: "toast-in .45s cubic-bezier(.2,1.2,.4,1) both" }}
+    >
+      <span className="grid size-7 flex-none place-items-center rounded-full bg-[var(--color-accent)] text-white">
+        <Check className="size-3.5" strokeWidth={3} />
+      </span>
+      <span className="truncate">{toast}</span>
+    </div>
   );
 }
 

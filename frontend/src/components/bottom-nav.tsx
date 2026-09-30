@@ -62,13 +62,17 @@ export function BottomNav() {
           aria-expanded={cartOpen}
           className={cn(itemClass, "cursor-pointer", cartActive ? "text-[var(--color-accent)]" : "text-[var(--color-text)]")}
         >
-          <span className="relative -mt-6 grid size-14 place-items-center rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-bg)] text-[var(--color-accent-ink)] shadow-[var(--shadow-md)] [background:var(--gradient-primary)] transition-transform active:scale-95">
-            <ShoppingBag className="size-6" strokeWidth={2.2} />
-            {count > 0 && (
-              <span className="absolute -end-1.5 -top-1.5 grid h-5 min-w-5 place-items-center rounded-[var(--radius-full)] bg-[var(--color-text)] px-1 text-[11px] text-[var(--color-bg)]">
-                {count > 99 ? "99+" : count}
-              </span>
-            )}
+          <span className="relative -mt-7 grid size-16 rotate-[-6deg] place-items-center rounded-[var(--radius-lg)] border-4 border-[var(--color-bg)] text-[var(--color-accent-ink)] shadow-[0_14px_26px_-8px_color-mix(in_srgb,var(--color-accent)_65%,transparent)] [background:var(--gradient-primary)] transition-transform active:scale-90">
+            <ShoppingBag className="size-6 rotate-[6deg]" strokeWidth={2.2} />
+            <span
+              data-cart-target
+              className={cn(
+                "absolute -end-2 -top-2 grid h-6 min-w-6 rotate-[6deg] place-items-center rounded-[var(--radius-full)] bg-[var(--color-text)] px-1 font-mono text-[11px] text-[var(--color-bg)] transition-opacity",
+                count > 0 ? "opacity-100" : "opacity-0"
+              )}
+            >
+              {count > 99 ? "99+" : count}
+            </span>
           </span>
           <span>{t("cart")}</span>
         </button>

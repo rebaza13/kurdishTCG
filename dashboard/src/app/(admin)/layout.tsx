@@ -62,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         <div className="flex h-full flex-col gap-4 p-3 md:p-4">
           <div className="hidden px-2 md:block">
             <div className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">
-              KurdishTCG
+              IraqTCG
             </div>
             <div className="text-sm text-muted">Admin</div>
           </div>
