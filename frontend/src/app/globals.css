@@ -372,6 +372,8 @@ h1, h2, h3, h4, h5, h6 {
     display: grid;
     place-items: center;
   }
+}
+
 /* Shared motion vocabulary — the pack-rip hero, franchise ticker, product
    grid and toasts all draw from this set. */
 @keyframes float {

@@ -10,8 +10,11 @@ export function ThemeProvider({
   return (
     <NextThemesProvider
       attribute="data-theme"
-      defaultTheme="system"
-      enableSystem
+      // Dark ("Neon Vault") is the shop's default look — a first-time visitor
+      // gets it regardless of their OS setting. The toggle only offers
+      // light/dark, so there is no "system" choice to enable.
+      defaultTheme="dark"
+      enableSystem={false}
       disableTransitionOnChange
       {...props}
     >

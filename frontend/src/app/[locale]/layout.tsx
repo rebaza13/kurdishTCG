@@ -54,6 +54,10 @@ export default async function LocaleLayout({
     <html
       lang={locale}
       dir={dir}
+      // Matches ThemeProvider's defaultTheme so the first paint is already
+      // dark; next-themes' pre-paint script overrides this for a visitor who
+      // has chosen light, so there is no flash either way.
+      data-theme="dark"
       suppressHydrationWarning
       className={`${bricolageGrotesque.variable} ${jetbrainsMono.variable} ${notoKufiArabic.variable} ${notoSansArabic.variable}`}
     >
