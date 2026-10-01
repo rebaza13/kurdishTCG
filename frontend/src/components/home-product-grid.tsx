@@ -1,14 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import { useMemo, useState } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
-import { formatPrice } from "@/lib/utils";
+import { useTranslations } from "next-intl";
+import { ProductCard } from "@/components/product-card";
 import { useCartStore } from "@/lib/cart-store";
 import type { Franchise, Product } from "@tcg/types";
-
-const URGENT_RARITIES = new Set(["ultra", "secret", "holo"]);
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -61,14 +57,17 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
   const t = useTranslations("product");
   const home = useTranslations("home");
   const franchisesT = useTranslations("franchises");
-  const rarityT = useTranslations("rarity");
-  const locale = useLocale();
   const addItem = useCartStore((s) => s.addItem);
 
   const [filter, setFilter] = useState<string>("all");
   const [toast, setToast] = useState<string | null>(null);
 
   const byFranchise = useMemo(() => new Map(franchises.map((f) => [f.slug, f])), [franchises]);
+  // Only offer chips for franchises that actually have something in this grid.
+  const chipFranchises = useMemo(
+    () => franchises.filter((f) => products.some((p) => p.franchise === f.slug)),
+    [franchises, products]
+  );
   const visible = filter === "all" ? products : products.filter((p) => p.franchise === filter);
 
   function handleAdd(e: React.MouseEvent<HTMLButtonElement>, product: Product) {
@@ -82,61 +81,43 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
 
   return (
     <>
+      {chipFranchises.length > 1 && (
       <div className="kt-chip-row">
         <button type="button" className="kt-filter-chip" data-active={filter === "all"} onClick={() => setFilter("all")}>
           <span className="kt-filter-chip__swatch" style={{ background: "var(--color-accent)" }} aria-hidden />
           <span>{home("allFranchises")}</span>
         </button>
-        {franchises.map((f) => (
+        {chipFranchises.map((f) => (
           <button key={f.slug} type="button" className="kt-filter-chip" data-active={filter === f.slug} onClick={() => setFilter(f.slug)}>
             <span className="kt-filter-chip__swatch" style={{ background: f.accent }} aria-hidden />
             <span>{f.name}</span>
           </button>
         ))}
       </div>
+      )}
 
-      <div className="kt-product-grid">
-        {visible.map((p) => {
-          const f = byFranchise.get(p.franchise);
-          const tag =
-            p.stock > 0 && p.stock <= 5
-              ? t("onlyLeft", { count: p.stock })
-              : p.rarity && URGENT_RARITIES.has(p.rarity)
-                ? rarityT(p.rarity)
-                : null;
-          return (
-            <Link key={p.id} href={`/franchises/${p.franchise}/${p.slug}`} className="kt-product-card">
-              <div className="kt-product-card__media" style={{ background: f ? `color-mix(in oklch, ${f.accent} 12%, var(--color-surface))` : undefined }}>
-                <Image src={p.image} alt={p.name} fill sizes="(max-width: 760px) 45vw, 250px" className="object-contain" />
-                {f && (
-                  <span className="kt-product-card__franchise">
-                    <span className="kt-product-card__swatch" style={{ background: f.accent }} aria-hidden />
-                    <span>{f.name}</span>
-                  </span>
-                )}
-                {tag && <span className="kt-product-card__tag">{tag}</span>}
-              </div>
-              <div className="kt-product-card__body">
-                <span className="kt-product-card__set">{p.set}</span>
-                <span className="kt-product-card__name">{p.name}</span>
-                <div className="kt-product-card__footer">
-                  <span className="kt-product-card__price">{formatPrice(p.price, locale)}</span>
-                  <button
-                    type="button"
-                    className="kt-add-btn"
-                    aria-label={t("addToCart")}
-                    disabled={p.stock <= 0}
-                    onClick={(e) => handleAdd(e, p)}
-                  >
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-                      <path d="M12 5v14M5 12h14" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
-            </Link>
-          );
-        })}
+      <div className="kt-card-grid">
+        {visible.map((p) => (
+          <ProductCard
+            key={p.id}
+            product={p}
+            franchise={byFranchise.get(p.franchise)}
+            sizes="(max-width: 640px) 46vw, (max-width: 1280px) 30vw, 300px"
+            action={
+              <button
+                type="button"
+                className="kt-add-btn"
+                aria-label={`${t("addToCart")}: ${p.name}`}
+                disabled={p.stock <= 0}
+                onClick={(e) => handleAdd(e, p)}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" aria-hidden>
+                  <path d="M12 5v14M5 12h14" />
+                </svg>
+              </button>
+            }
+          />
+        ))}
         {visible.length === 0 && (
           <p style={{ gridColumn: "1 / -1", color: "var(--color-text-muted)", padding: "2rem 0" }}>{franchisesT("outOfStock")}</p>
         )}

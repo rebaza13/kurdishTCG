@@ -60,7 +60,14 @@
     "pulledPrefix": "You pulled {name}",
     "addedToCartToast": "Added · {name}",
     "newsletterEyebrow": "03 — One email a week",
-    "stageRing": "PULL THE FOIL ✦ RIP IT OPEN ✦ SOURCED IN ERBIL ✦ PRICED IN DINARS ✦ SEALED & REAL ✦ "
+    "stageRing": "PULL THE FOIL ✦ RIP IT OPEN ✦ SOURCED IN ERBIL ✦ PRICED IN DINARS ✦ SEALED & REAL ✦ ",
+    "heroTitleSecondaryAll": "Sealed boxes, booster packs and chase singles from six worlds — priced in dinars, ripped by you.",
+    "sealedKicker": "02 — Sealed",
+    "singlesKicker": "03 — Singles",
+    "singlesTitle": "Singles worth chasing.",
+    "singlesBody": "Hand-picked rares and foils, each shipped sleeved and in the condition listed.",
+    "viewAllSingles": "Shop all singles",
+    "newsletterEyebrowNumbered": "04 — One email a week"
   },
   "franchises": {
     "kicker": "All franchises",
@@ -87,7 +94,11 @@
     "clearFilters": "Clear filters",
     "noResults": "No items match these filters.",
     "showingResults": "Showing {count} of {total} items",
-    "page": "Page {page} of {total}"
+    "page": "Page {page} of {total}",
+    "kindLabel": "Type",
+    "kindAll": "All",
+    "kindSingles": "Singles",
+    "kindSealed": "Sealed"
   },
   "rarity": {
     "common": "Common",
@@ -131,7 +142,10 @@
     "subtotal": "Subtotal",
     "shippingNote": "Delivery is arranged by phone after you place your order — cash on delivery.",
     "checkout": "Checkout",
-    "quantity": "Qty"
+    "quantity": "Qty",
+    "close": "Close",
+    "decrease": "Decrease quantity",
+    "increase": "Increase quantity"
   },
   "checkout": {
     "title": "Reserve your order",
@@ -171,7 +185,8 @@
     "googleNotConfigured": "Google sign-in isn't set up yet — try email instead.",
     "useEmailInstead": "Prefer email? Sign in here",
     "viewOrder": "View order",
-    "total": "Total"
+    "total": "Total",
+    "fieldsError": "Please fill in your name, city and address."
   },
   "orderStatus": {
     "requested": "Requested",
@@ -206,7 +221,8 @@
       "SERVER_FAILURE": "FIB had an internal error processing this payment.",
       "PAYMENT_EXPIRATION": "The payment code expired before it was paid.",
       "PAYMENT_CANCELLATION": "The payment was cancelled."
-    }
+    },
+    "close": "Close"
   },
   "account": {
     "signInTitle": "Welcome back",
@@ -232,7 +248,22 @@
     "declineReasonLabel": "Reason",
     "payNow": "Pay now",
     "retryPayment": "Try payment again",
-    "retryError": "Couldn't start a new payment — please try again."
+    "retryError": "Couldn't start a new payment — please try again.",
+    "signUpTitle": "Create your account",
+    "signUpSubtitle": "Track your orders and pay online with FIB.",
+    "haveAccount": "Already have an account?",
+    "createAccountCta": "Create account",
+    "passwordHint": "At least 6 characters.",
+    "signInToView": "Sign in to see this order.",
+    "errors": {
+      "invalidCredentials": "Wrong email or password.",
+      "emailNotConfirmed": "Confirm your email first — check your inbox for the link.",
+      "userExists": "An account with this email already exists — sign in instead.",
+      "weakPassword": "Choose a stronger password (at least 6 characters).",
+      "invalidEmail": "Enter a valid email address.",
+      "rateLimited": "Too many attempts — wait a minute and try again.",
+      "generic": "Something went wrong — please try again."
+    }
   },
   "sell": {
     "title": "Sell your collection to us.",
@@ -242,7 +273,7 @@
   "aboutPage": {
     "kicker": "About us",
     "title": "Real cards, shipped from Erbil.",
-    "p1": "KurdishTCG is an online shop for sealed trading card releases — booster packs and boxes from Riftbound, Naruto, Disney Lorcana, Avatar: The Last Airbender, SpongeBob and Zootopia.",
+    "p1": "KurdishTCG is an online shop for trading cards — sealed booster packs and boxes plus hand-picked single cards from Riftbound, Naruto, Disney Lorcana, Avatar: The Last Airbender, SpongeBob and Zootopia.",
     "p2": "Every listing is photographed from the actual box, pack or card on our shelf, not a stock photo. New stock is sourced and shipped from Erbil to anywhere in Iraq.",
     "p3": "Pay cash on delivery, or instantly online with FIB. The site runs in English, Arabic and Kurdish (Sorani), so browse in whichever you're comfortable with.",
     "cta": "Shop new arrivals"
@@ -302,6 +333,7 @@
     "newsletterBody": "One email a week, no spam. New arrivals, restocks, price updates.",
     "newsletterPlaceholder": "you@email.com",
     "newsletterCta": "Subscribe",
-    "rights": "All rights reserved."
+    "rights": "All rights reserved.",
+    "location": "Erbil · Kurdistan"
   }
 }

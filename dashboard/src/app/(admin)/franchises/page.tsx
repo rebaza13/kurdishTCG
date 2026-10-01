@@ -5,7 +5,7 @@ import { Plus } from "lucide-react";
 import { getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { Thumb } from "@/components/image-upload";
-import { Button, Card, EmptyState, Notice, PageHeader, Spinner } from "@/components/ui";
+import { Card, EmptyState, ErrorWithRetry, PageHeader, Spinner, buttonClass } from "@/components/ui";
 
 interface FranchiseRow {
   slug: string;
@@ -36,7 +36,7 @@ async function loadFranchises() {
 }
 
 export default function FranchisesPage() {
-  const { data, error } = useQuery(loadFranchises, []);
+  const { data, error, reload } = useQuery(loadFranchises, []);
 
   return (
     <>
@@ -44,23 +44,21 @@ export default function FranchisesPage() {
         title="Franchises"
         subtitle="Each franchise is a section of the storefront."
         actions={
-          <Link href="/franchises/new">
-            <Button variant="primary">
-              <Plus className="size-4" /> New franchise
-            </Button>
+          <Link href="/franchises/new" className={buttonClass({ variant: "primary" })}>
+            <Plus className="size-4" /> New franchise
           </Link>
         }
       />
       {!data ? (
-        error ? <Notice>{error}</Notice> : <Spinner />
+        error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />
       ) : data.franchises.length === 0 ? (
         <Card>
-          <EmptyState>No franchises yet.</EmptyState>
+          <EmptyState>No franchises yet — create one to start adding products.</EmptyState>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {data.franchises.map((f) => (
-            <Link key={f.slug} href={`/franchises/${f.slug}`}>
+            <Link key={f.slug} href={`/franchises/${encodeURIComponent(f.slug)}`} className="min-w-0">
               <Card className="flex items-center gap-4 overflow-hidden p-4 transition-colors hover:bg-surface-2">
                 <Thumb src={f.image} className="size-16" />
                 <div className="min-w-0 flex-1">

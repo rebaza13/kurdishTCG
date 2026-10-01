@@ -33,7 +33,7 @@ export function NewsletterBanner() {
           style={{ right: "clamp(80px,17vw,330px)", top: "58%", width: "clamp(120px,14vw,200px)", height: "auto", transform: "translateY(-50%) rotate(-12deg)" }}
         />
         <div className="kt-newsletter__content">
-          <span className="kt-newsletter__eyebrow">{home("newsletterEyebrow")}</span>
+          <span className="kt-newsletter__eyebrow">{home("newsletterEyebrowNumbered")}</span>
           <h2 className="kt-newsletter__title">{t("newsletterTitle")}</h2>
           <p className="kt-newsletter__body">{t("newsletterBody")}</p>
           <form

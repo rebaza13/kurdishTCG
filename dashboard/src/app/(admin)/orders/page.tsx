@@ -12,8 +12,8 @@ import { cn } from "@/lib/utils";
 import {
   Card,
   EmptyState,
+  ErrorWithRetry,
   Input,
-  Notice,
   PageHeader,
   PaymentStatusBadge,
   Spinner,
@@ -51,7 +51,7 @@ function OrdersView() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
-  const { data, error } = useQuery(loadOrders, []);
+  const { data, error, reload } = useQuery(loadOrders, []);
 
   const raw = params.get("status");
   const active = ORDER_STATUSES.find((s) => s === raw) ?? "all";
@@ -61,7 +61,7 @@ function OrdersView() {
   }
 
   if (!data) {
-    return error ? <Notice>{error}</Notice> : <Spinner />;
+    return error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />;
   }
 
   const counts = new Map<string, number>();
@@ -85,14 +85,15 @@ function OrdersView() {
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-center gap-2">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 sm:mx-0 sm:flex-wrap sm:px-0">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setStatus(t.key)}
             className={cn(
-              "rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
+              "shrink-0 whitespace-nowrap rounded-full border px-3 py-1.5 text-xs font-medium transition-colors",
               active === t.key
                 ? "border-accent bg-accent/12 text-accent"
                 : "border-line bg-surface text-muted hover:text-fg"
@@ -101,7 +102,8 @@ function OrdersView() {
             {t.label} <span className="tabular-nums opacity-70">{t.count}</span>
           </button>
         ))}
-        <div className="relative ml-auto w-full sm:w-64">
+        </div>
+        <div className="relative w-full sm:ml-auto sm:w-64 sm:shrink-0">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             value={query}
@@ -113,9 +115,40 @@ function OrdersView() {
         </div>
       </div>
 
-      <Card className="overflow-x-auto">
+      {/* Phones: a stacked list — a scrolling table hides the status column. */}
+      {rows.length > 0 && (
+        <Card className="sm:hidden">
+          <ul className="divide-y divide-line">
+            {rows.map((o) => (
+              <li key={o.id}>
+                <Link href={`/orders/${o.id}`} className="block px-4 py-3 hover:bg-surface-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{o.full_name}</div>
+                      <div className="truncate text-xs text-muted">
+                        #{shortId(o.id)} · {o.city} · {dateTime(o.created_at)}
+                      </div>
+                    </div>
+                    <div className="shrink-0 text-sm tabular-nums">{money(o.total, o.currency)}</div>
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    <StatusBadge status={o.status} />
+                    {o.payment_method === "fib" && o.payment_status && (
+                      <PaymentStatusBadge status={o.payment_status} />
+                    )}
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Card className={cn("overflow-x-auto", rows.length > 0 && "hidden sm:block")}>
         {rows.length === 0 ? (
-          <EmptyState>No orders match.</EmptyState>
+          <EmptyState>
+            {data.length === 0 ? "No orders yet." : "No orders match these filters."}
+          </EmptyState>
         ) : (
           <table className="w-full min-w-[42rem] text-sm">
             <thead>
@@ -137,8 +170,8 @@ function OrdersView() {
                     </Link>
                     <div className="text-xs text-muted">{dateTime(o.created_at)}</div>
                   </td>
-                  <td className="px-4 py-3">
-                    <div>{o.full_name}</div>
+                  <td className="max-w-56 px-4 py-3">
+                    <div className="truncate">{o.full_name}</div>
                     <div className="text-xs text-muted" dir="ltr">
                       {o.phone}
                     </div>
@@ -171,7 +204,7 @@ function OrdersView() {
 export default function OrdersPage() {
   return (
     <>
-      <PageHeader title="Orders" subtitle="Cash-on-delivery requests from the storefront." />
+      <PageHeader title="Orders" subtitle="Requests from the storefront — cash on delivery or paid with FIB." />
       <Suspense fallback={<Spinner />}>
         <OrdersView />
       </Suspense>

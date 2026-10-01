@@ -7,7 +7,7 @@ import { PriceTag } from "@/components/price-tag";
 import { ProductGallery } from "@/components/product-gallery";
 import { ProductPurchase } from "@/components/product-purchase";
 import { ProductCard } from "@/components/product-card";
-import { getFranchise, getProductBySlug, getRelatedProducts } from "@/lib/data";
+import { getFranchise, getProductBySlug, getRelatedProducts, isSingleCard } from "@/lib/data";
 import { buildGalleryImages } from "@/lib/utils";
 import { localizedAlternates } from "@/lib/seo";
 import type { FranchiseSlug } from "@tcg/types";
@@ -119,7 +119,7 @@ export default async function ProductDetailPage({
           {franchiseData?.name ?? franchise}
         </Link>
         <span aria-hidden>/</span>
-        <Link href={`/franchises/${franchise}`} className="hover:text-[var(--color-accent)]">
+        <Link href={`/franchises/${franchise}?set=${encodeURIComponent(product.set)}`} className="hover:text-[var(--color-accent)]">
           {product.set}
         </Link>
         <span aria-hidden>/</span>
@@ -128,7 +128,12 @@ export default async function ProductDetailPage({
 
       <div className="grid md:grid-cols-[minmax(0,400px)_1fr] gap-10 md:gap-16 lg:gap-24 md:items-start">
         <div className="reveal mx-auto w-full max-w-[340px] md:max-w-none md:sticky md:top-24">
-          <ProductGallery images={galleryImages} alt={product.name} />
+          <ProductGallery
+            images={galleryImages}
+            alt={product.name}
+            fit={isSingleCard(product) ? "cover" : "contain"}
+            accent={franchiseData?.accent}
+          />
         </div>
 
         <div className="reveal flex flex-col gap-5" style={{ animationDelay: "90ms" }}>
@@ -184,7 +189,7 @@ export default async function ProductDetailPage({
               <h2 className="text-2xl md:text-3xl">{t("related")}</h2>
             </div>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+          <div className="kt-card-grid">
             {related.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

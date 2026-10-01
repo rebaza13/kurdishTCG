@@ -17,7 +17,7 @@ export async function OPTIONS() {
  * moments before the admin clicked cancel) don't block the order cancel
  * itself — the dashboard calls this and ignores a non-OK result.
  */
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const headers = corsHeaders();
   const admin_user = await verifyAdmin(request);
   if (!admin_user) {
@@ -59,4 +59,15 @@ export async function POST(request: Request) {
   await admin.from("orders").update({ payment_status: "declined" }).eq("id", order.id);
 
   return NextResponse.json({ ok: true }, { headers });
+}
+
+// Uncaught errors (e.g. a missing service-role key) must still carry CORS
+// headers, or the dashboard only sees an opaque "Failed to fetch".
+export async function POST(request: Request) {
+  try {
+    return await handle(request);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "server_error" }, { status: 500, headers: corsHeaders() });
+  }
 }

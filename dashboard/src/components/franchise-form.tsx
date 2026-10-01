@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   ConfirmButton,
+  ErrorWithRetry,
   Field,
   Input,
   Notice,
@@ -84,7 +85,8 @@ function toRow(f: FormState): FranchiseRow | string {
   if (!f.image.trim()) return "Add an image.";
   if (!isAllowedProductImageHost(f.image.trim()))
     return "Image must be uploaded (or a link to it) — pasted links from other sites aren't shown on the storefront and would break this franchise's page.";
-  if (!Number.isInteger(sort)) return "Sort order must be a whole number.";
+  if (!Number.isInteger(sort) || Math.abs(sort) > 32767)
+    return "Sort order must be a whole number (−32767 to 32767).";
   return {
     slug: f.slug,
     name_en: f.name.en.trim(),
@@ -105,7 +107,7 @@ function toRow(f: FormState): FranchiseRow | string {
 export function FranchiseForm({ slug }: { slug?: string }) {
   const editing = slug !== undefined;
 
-  const { data, error } = useQuery(async () => {
+  const { data, error, reload } = useQuery(async () => {
     const supabase = getSupabase();
     if (!editing) return { row: null, productCount: 0 };
     const [row, products] = await Promise.all([
@@ -127,7 +129,7 @@ export function FranchiseForm({ slug }: { slug?: string }) {
     return (
       <>
         {back}
-        {error ? <Notice>{error}</Notice> : <Spinner />}
+        {error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />}
       </>
     );
   }
@@ -239,7 +241,9 @@ function FormBody({
         title={editing ? f.name.en || "Edit franchise" : "New franchise"}
         subtitle={
           editing
-            ? `${productCount} product${productCount === 1 ? "" : "s"}`
+            ? productCount > 0
+              ? `${productCount} product${productCount === 1 ? "" : "s"} — it can only be deleted once it has none.`
+              : "No products yet."
             : "A new franchise appears on the storefront as soon as it's saved."
         }
         actions={
@@ -288,7 +292,7 @@ function FormBody({
       </Card>
 
       <Card className="grid gap-4 p-4 sm:grid-cols-3">
-        <Field label="Slug" required hint={editing ? "Can't be changed" : "Used in the URL"}>
+        <Field label="Slug" required hint={editing ? "Can't be changed (products refer to it)" : "Used in the URL — permanent"}>
           <Input
             value={f.slug}
             readOnly={editing}
@@ -299,8 +303,17 @@ function FormBody({
             required
           />
         </Field>
-        <Field label="Accent colour" required hint="Hex, e.g. #ec3013 — or a CSS colour / var()">
+        <Field label="Accent colour" required group hint="Hex, e.g. #ec3013 — or a CSS colour / var()">
           <div className="flex gap-2">
+            {/* The picker can only show hex — preview var()/named colours too. */}
+            {!HEX_RE.test(f.accent) && (
+              <span
+                aria-hidden
+                className="size-10 shrink-0 rounded-lg border border-line"
+                style={{ background: f.accent }}
+                title="Current colour"
+              />
+            )}
             <input
               type="color"
               aria-label="Pick accent colour"
@@ -308,7 +321,13 @@ function FormBody({
               onChange={(e) => patch({ accent: e.target.value })}
               className="h-10 w-12 shrink-0 cursor-pointer rounded-lg border border-line bg-surface p-1"
             />
-            <Input value={f.accent} onChange={(e) => patch({ accent: e.target.value })} required />
+            <Input
+              value={f.accent}
+              onChange={(e) => patch({ accent: e.target.value })}
+              aria-label="Accent colour value"
+              dir="ltr"
+              required
+            />
           </div>
         </Field>
         <Field label="Sort order" hint="Lower comes first">
@@ -322,7 +341,7 @@ function FormBody({
       </Card>
 
       <Card className="p-4">
-        <Field label="Image" required>
+        <Field label="Image" required group>
           <ImageField
             value={f.image}
             onChange={(image) => patch({ image })}

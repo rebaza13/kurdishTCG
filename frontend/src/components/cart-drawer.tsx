@@ -21,7 +21,7 @@ export function CartButton() {
   const count = useCartCount();
 
   return (
-    <button type="button" className="kt-cart-btn" onClick={toggle}>
+    <button type="button" className="kt-cart-btn whitespace-nowrap" onClick={toggle} aria-haspopup="dialog">
       <span>{t("title")}</span>
       <span id="header-cart-badge" className="kt-cart-badge">
         {count}
@@ -42,15 +42,15 @@ export function CartDrawer() {
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => (open ? undefined : close())}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
+        <Dialog.Overlay className="fixed inset-0 z-[90] bg-black/50" />
         <Dialog.Content
-          className="fixed inset-y-0 end-0 z-50 flex w-full max-w-[420px] flex-col bg-[var(--color-bg)] border-s-[length:var(--border-width)] border-[var(--color-border-strong)] shadow-[var(--shadow-lg)]"
+          className="fixed inset-y-0 end-0 z-[100] flex w-full max-w-[420px] flex-col bg-[var(--color-bg)] border-s-[length:var(--border-width)] border-[var(--color-border-strong)] shadow-[var(--shadow-lg)]"
           aria-describedby={undefined}
         >
           <div className="flex items-center justify-between border-b-[length:var(--border-width)] border-[var(--color-border)] p-5">
             <Dialog.Title className="text-lg">{t("title")}</Dialog.Title>
             <Dialog.Close asChild>
-              <Button type="button" variant="ghost" size="icon" aria-label="Close">
+              <Button type="button" variant="ghost" size="icon" aria-label={t("close")}>
                 <X className="size-4" />
               </Button>
             </Dialog.Close>
@@ -93,18 +93,18 @@ export function CartDrawer() {
                         <div className="flex items-center border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-xs)]">
                           <button
                             type="button"
-                            aria-label="Decrease quantity"
+                            aria-label={t("decrease")}
                             className="p-1.5 cursor-pointer"
                             onClick={() => setQuantity(item.productId, item.quantity - 1)}
                           >
                             <Minus className="size-3" />
                           </button>
-                          <span className="min-w-[1.5rem] text-center text-xs">
+                          <span className="min-w-[1.5rem] text-center text-xs [font-variant-numeric:tabular-nums]" aria-live="polite">
                             {item.quantity}
                           </span>
                           <button
                             type="button"
-                            aria-label="Increase quantity"
+                            aria-label={t("increase")}
                             className="p-1.5 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                             disabled={item.quantity >= item.stock}
                             onClick={() => setQuantity(item.productId, item.quantity + 1)}
@@ -133,11 +133,11 @@ export function CartDrawer() {
                 </div>
                 <p className="text-xs text-[var(--color-text-muted)]">{t("shippingNote")}</p>
                 <Dialog.Close asChild>
-                  <Link href="/checkout" className="w-full">
-                    <Button variant="primary" size="lg" className="w-full justify-center">
+                  <Button asChild variant="primary" size="lg" className="w-full justify-center">
+                    <Link href="/checkout">
                       {t("checkout")}
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 </Dialog.Close>
               </div>
             </>

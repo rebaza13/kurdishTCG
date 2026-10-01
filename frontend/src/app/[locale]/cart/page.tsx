@@ -18,9 +18,9 @@ export default function CartPage() {
         <ShoppingBag className="size-10 text-[var(--color-text-muted)]" />
         <h1 className="text-2xl">{t("empty")}</h1>
         <p className="text-sm text-[var(--color-text-muted)]">{t("emptyBody")}</p>
-        <Link href="/franchises">
-          <Button variant="primary">{t("continueShopping")}</Button>
-        </Link>
+        <Button asChild variant="primary">
+          <Link href="/franchises">{t("continueShopping")}</Link>
+        </Button>
       </div>
     );
   }
@@ -53,7 +53,7 @@ export default function CartPage() {
                   <div className="flex items-center border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-xs)]">
                     <button
                       type="button"
-                      aria-label="Decrease quantity"
+                      aria-label={t("decrease")}
                       className="p-2 cursor-pointer"
                       onClick={() => setQuantity(item.productId, item.quantity - 1)}
                     >
@@ -62,7 +62,7 @@ export default function CartPage() {
                     <span className="min-w-[2rem] text-center text-sm">{item.quantity}</span>
                     <button
                       type="button"
-                      aria-label="Increase quantity"
+                      aria-label={t("increase")}
                       className="p-2 cursor-pointer disabled:cursor-not-allowed disabled:opacity-30"
                       disabled={item.quantity >= item.stock}
                       onClick={() => setQuantity(item.productId, item.quantity + 1)}
@@ -91,11 +91,11 @@ export default function CartPage() {
           <PriceTag value={cartSubtotal(items)} className="text-xl" />
         </div>
         <p className="text-xs text-[var(--color-text-muted)]">{t("shippingNote")}</p>
-        <Link href="/checkout">
-          <Button variant="primary" size="lg" className="w-full justify-center">
+        <Button asChild variant="primary" size="lg" className="w-full justify-center">
+          <Link href="/checkout">
             {t("checkout")}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       </aside>
     </div>
   );

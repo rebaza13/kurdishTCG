@@ -11,6 +11,8 @@ interface CartState {
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
+  /** Apply a server-reported stock level: clamps the line, drops it at 0. */
+  syncStock: (productId: string, stock: number) => void;
   clear: () => void;
   open: () => void;
   close: () => void;
@@ -23,6 +25,7 @@ export const useCartStore = create<CartState>()(
       items: [],
       isOpen: false,
       addItem: (product, quantity = 1) => {
+        if (product.stock <= 0 || quantity <= 0) return;
         const items = get().items;
         const existing = items.find((i) => i.productId === product.id);
         if (existing) {
@@ -63,6 +66,17 @@ export const useCartStore = create<CartState>()(
               : get().items.map((i) =>
                   i.productId === productId
                     ? { ...i, quantity: Math.min(quantity, i.stock) }
+                    : i
+                ),
+        }),
+      syncStock: (productId, stock) =>
+        set({
+          items:
+            stock <= 0
+              ? get().items.filter((i) => i.productId !== productId)
+              : get().items.map((i) =>
+                  i.productId === productId
+                    ? { ...i, stock, quantity: Math.min(i.quantity, stock) }
                     : i
                 ),
         }),

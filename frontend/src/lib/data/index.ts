@@ -3,12 +3,16 @@ import type {
   FranchiseSlug,
   Product,
   ProductFilters,
+  ProductKind,
   ProductListResult,
   ProductType,
   Rarity,
 } from "@tcg/types";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type { Locale } from "@/i18n/routing";
+import { isSingleCard } from "./product-kind";
+
+export { isSingleCard, parseProductKind, FOIL_RARITIES } from "./product-kind";
 
 /**
  * Single entry point every component/page uses to read product data.
@@ -112,13 +116,8 @@ const RARITY_RANK: Record<string, number> = {
 
 async function fetchAllProducts(): Promise<ProductRow[]> {
   const supabase = getSupabaseClient();
-  // Storefront sells sealed packs/boxes only for now — single cards stay in
-  // the database (a future card marketplace may use them) but are hidden
-  // from every customer-facing listing.
-  const { data, error } = await supabase
-    .from("products")
-    .select("*")
-    .neq("product_type", "single_card");
+  // Every product type is listed — sealed product and single cards alike.
+  const { data, error } = await supabase.from("products").select("*");
   if (error) throw error;
   return (data ?? []) as ProductRow[];
 }
@@ -161,6 +160,10 @@ export async function getFranchise(
 
 function applyFilters(products: Product[], filters: ProductFilters): Product[] {
   let result = products;
+  if (filters.kind) {
+    const wantSingles = filters.kind === "singles";
+    result = result.filter((p) => isSingleCard(p) === wantSingles);
+  }
   if (filters.rarity?.length) {
     result = result.filter((p) => p.rarity && filters.rarity!.includes(p.rarity));
   }
@@ -214,7 +217,11 @@ export async function getProducts(
     .filter((p) => !slugs || slugs.includes(p.franchise_slug))
     .map((p) => mapProductRow(p, locale));
 
-  const filtered = applyFilters(all, filters);
+  const anyKind = applyFilters(all, { ...filters, kind: undefined });
+  const filtered = filters.kind
+    ? anyKind.filter((p) => isSingleCard(p) === (filters.kind === "singles"))
+    : anyKind;
+  const singles = anyKind.filter(isSingleCard).length;
 
   const pageSize = filters.pageSize ?? 24;
   const page = filters.page ?? 1;
@@ -222,11 +229,22 @@ export async function getProducts(
   const items = filtered.slice(start, start + pageSize);
   const sets = Array.from(new Set(all.map((p) => p.set))).sort();
 
-  return { items, total: filtered.length, page, pageSize, sets };
+  return {
+    items,
+    total: filtered.length,
+    page,
+    pageSize,
+    sets,
+    kindCounts: { singles, sealed: anyKind.length - singles },
+  };
 }
 
-export async function getFeaturedProducts(limit = 8, locale: Locale = "en"): Promise<Product[]> {
-  const { items } = await getProducts(undefined, { sort: "rarity", pageSize: 200 }, locale);
+export async function getFeaturedProducts(
+  limit = 8,
+  locale: Locale = "en",
+  kind?: ProductKind
+): Promise<Product[]> {
+  const { items } = await getProducts(undefined, { sort: "rarity", pageSize: 200, kind }, locale);
   // Spread featured picks across franchises rather than letting one
   // franchise's high rarities dominate the carousel.
   const seen = new Set<FranchiseSlug>();
@@ -256,7 +274,6 @@ export async function getProductBySlug(
     .select("*")
     .eq("franchise_slug", franchise)
     .eq("slug", slug)
-    .neq("product_type", "single_card")
     .maybeSingle();
   if (error) throw error;
   if (!data) return null;
@@ -269,9 +286,14 @@ export async function getRelatedProducts(
   locale: Locale = "en"
 ): Promise<Product[]> {
   const { items } = await getProducts(product.franchise, { pageSize: 200 }, locale);
-  const sameSet = items.filter((p) => p.id !== product.id && p.set === product.set);
-  const rest = items.filter((p) => p.id !== product.id && p.set !== product.set);
-  return [...sameSet, ...rest].slice(0, limit);
+  // Same set first, then the same kind (singles next to singles, sealed next
+  // to sealed), then anything else from the franchise.
+  const others = items.filter((p) => p.id !== product.id);
+  const single = isSingleCard(product);
+  const sameSet = others.filter((p) => p.set === product.set);
+  const sameKind = others.filter((p) => p.set !== product.set && isSingleCard(p) === single);
+  const rest = others.filter((p) => p.set !== product.set && isSingleCard(p) !== single);
+  return [...sameSet, ...sameKind, ...rest].slice(0, limit);
 }
 
 export interface SiteSettings {

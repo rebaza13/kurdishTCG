@@ -46,7 +46,7 @@ export default async function ContactPage({
         <div className="flex flex-col gap-3 max-w-[40ch]">
           {settings.whatsappNumber && (
             <a
-              href={`https://wa.me/${settings.whatsappNumber.replace(/[^0-9]/g, "")}`}
+              href={`https://wa.me/${toWaDigits(settings.whatsappNumber)}`}
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-3 px-4 py-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] hover:border-[var(--color-accent)] transition-colors"
@@ -91,4 +91,10 @@ export default async function ContactPage({
       </div>
     </div>
   );
+}
+
+/** wa.me needs the international form; older settings may hold a local "07…" Iraqi number. */
+function toWaDigits(raw: string): string {
+  const digits = raw.replace(/[^0-9]/g, "").replace(/^00/, "");
+  return digits.startsWith("0") ? `964${digits.slice(1)}` : digits;
 }

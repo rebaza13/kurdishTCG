@@ -16,7 +16,7 @@ export async function OPTIONS() {
  * the customer's own order page polls) /api/fib/status until it flips to
  * REFUNDED.
  */
-export async function POST(request: Request) {
+async function handle(request: Request) {
   const headers = corsHeaders();
   const admin_user = await verifyAdmin(request);
   if (!admin_user) {
@@ -59,4 +59,15 @@ export async function POST(request: Request) {
   await admin.from("orders").update({ payment_status: "refund_requested" }).eq("id", order.id);
 
   return NextResponse.json({ ok: true }, { headers });
+}
+
+// Uncaught errors (e.g. a missing service-role key) must still carry CORS
+// headers, or the dashboard only sees an opaque "Failed to fetch".
+export async function POST(request: Request) {
+  try {
+    return await handle(request);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: "server_error" }, { status: 500, headers: corsHeaders() });
+  }
 }

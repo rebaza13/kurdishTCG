@@ -37,6 +37,11 @@ function useCountdown(validUntil: string): number {
   return remaining;
 }
 
+/** FIB returns `qrCode` as a full data URI; tolerate a bare base64 payload too. */
+function qrSrc(qrCode: string): string {
+  return qrCode.startsWith("data:") ? qrCode : `data:image/png;base64,${qrCode}`;
+}
+
 function formatCountdown(ms: number): string {
   const totalSeconds = Math.floor(ms / 1000);
   const m = Math.floor(totalSeconds / 60);
@@ -143,15 +148,15 @@ export function FibPaymentDialog({
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
       <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 z-40 bg-black/50" />
+        <Dialog.Overlay className="fixed inset-0 z-[90] bg-black/50" />
         <Dialog.Content
-          className="fixed left-1/2 top-1/2 z-50 w-[calc(100%-2rem)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border-strong)] bg-[var(--color-bg)] p-6 shadow-[var(--shadow-lg)]"
+          className="fixed left-1/2 top-1/2 z-[100] w-[calc(100%-2rem)] max-w-[400px] -translate-x-1/2 -translate-y-1/2 rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border-strong)] bg-[var(--color-bg)] p-6 shadow-[var(--shadow-lg)]"
           aria-describedby={undefined}
         >
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-lg">{t("title")}</Dialog.Title>
             <Dialog.Close asChild>
-              <Button type="button" variant="ghost" size="icon" aria-label="Close">
+              <Button type="button" variant="ghost" size="icon" aria-label={t("close")}>
                 <X className="size-4" />
               </Button>
             </Dialog.Close>
@@ -187,14 +192,17 @@ export function FibPaymentDialog({
 
           {status === "pending" && !expired && (
             <div className="flex flex-col items-center gap-4">
-              <div className="rounded-[var(--radius-md)] border-[length:var(--border-width)] border-[var(--color-border)] bg-white p-3">
+              {/* FIB's PNG is 200px with no quiet zone, so phones can't lock onto
+                  it as-is: give it a ≥4-module white margin and draw it at its
+                  native size without smoothing. */}
+              <div className="rounded-[var(--radius-md)] border-[length:var(--border-width)] border-[var(--color-border)] bg-white p-6">
                 {/* eslint-disable-next-line @next/next/no-img-element -- base64 data URI, not an optimizable asset */}
                 <img
-                  src={`data:image/png;base64,${current.qrCode}`}
+                  src={qrSrc(current.qrCode)}
                   alt={t("scanQr")}
-                  width={220}
-                  height={220}
-                  className="size-[220px]"
+                  width={200}
+                  height={200}
+                  className="size-[200px] [image-rendering:pixelated]"
                 />
               </div>
               <p className="text-sm text-[var(--color-text-muted)] text-center">{t("scanQr")}</p>
@@ -215,12 +223,12 @@ export function FibPaymentDialog({
                 {t("orOpenApp")}
                 <span className="h-px flex-1 bg-[var(--color-border)]" />
               </div>
-              <a href={current.personalAppLink} className="w-full">
-                <Button variant="secondary" size="md" className="w-full justify-center">
+              <Button asChild variant="secondary" size="md" className="w-full justify-center">
+                <a href={current.personalAppLink}>
                   <Smartphone className="size-4" />
                   {t("openFibApp")}
-                </Button>
-              </a>
+                </a>
+              </Button>
             </div>
           )}
 

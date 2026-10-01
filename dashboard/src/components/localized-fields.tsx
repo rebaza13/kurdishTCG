@@ -30,7 +30,7 @@ export function LocalizedField({
   return (
     <div className="grid gap-3 md:grid-cols-3">
       {LANGS.map(({ key, label: langLabel, dir }) => (
-        <Field key={key} label={`${label} — ${langLabel}`} required={required && key === "en"}>
+        <Field key={key} label={`${label} — ${langLabel}`} required={required}>
           {multiline ? (
             <Textarea
               dir={dir}

@@ -25,7 +25,7 @@ export function LocaleSwitcher() {
         <Select.Content
           position="popper"
           sideOffset={6}
-          className="z-50 overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
+          className="z-[100] overflow-hidden rounded-[var(--radius-sm)] border border-[var(--color-border)] bg-[var(--color-surface)] shadow-[var(--shadow-md)]"
         >
           <Select.Viewport>
             {locales.map((l) => (

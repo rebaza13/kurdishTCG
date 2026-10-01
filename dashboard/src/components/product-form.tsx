@@ -14,6 +14,7 @@ import {
   Button,
   Card,
   ConfirmButton,
+  ErrorWithRetry,
   Field,
   Input,
   Notice,
@@ -105,7 +106,10 @@ function toForm(row: ProductRow): FormState {
 }
 
 /** Validate and convert the form into a `products` row, or return an error. */
-function toPayload(f: FormState): { row: Omit<ProductRow, "price" | "stock"> & { price: number; stock: number } } | { error: string } {
+function toPayload(
+  f: FormState,
+  editing: boolean
+): { row: Omit<ProductRow, "price" | "stock"> & { price: number; stock: number } } | { error: string } {
   const price = Number(f.price);
   const stock = Number(f.stock);
   if (!f.franchise_slug) return { error: "Choose a franchise." };
@@ -113,6 +117,10 @@ function toPayload(f: FormState): { row: Omit<ProductRow, "price" | "stock"> & {
     return { error: "Enter the product name in English, Arabic and Kurdish." };
   if (!SLUG_RE.test(f.slug)) return { error: "Slug must be lowercase letters, numbers and dashes." };
   if (!f.id.trim()) return { error: "Product id is required." };
+  // The id is permanent and ends up in dashboard URLs and storage paths, so
+  // new ones get the same shape as a slug. Older ids are left as they are.
+  if (!editing && !SLUG_RE.test(f.id.trim()))
+    return { error: "Product id must be lowercase letters, numbers and dashes." };
   if (!f.set_name.trim()) return { error: "Set name is required." };
   if (f.price === "" || !Number.isInteger(price) || price < 0)
     return { error: "Enter the price in whole dinars (IQD), e.g. 25000." };
@@ -136,8 +144,8 @@ function toPayload(f: FormState): { row: Omit<ProductRow, "price" | "stock"> & {
       description_ar: f.description.ar.trim(),
       description_ckb: f.description.ckb.trim(),
       set_name: f.set_name.trim(),
-      card_number: f.card_number.trim() || null,
-      // Rarity only means something for single cards.
+      // Card number and rarity only mean something for single cards.
+      card_number: f.product_type === "single_card" ? f.card_number.trim() || null : null,
       rarity: f.product_type === "single_card" ? f.rarity || null : null,
       price,
       condition: f.condition.trim() || "New",
@@ -153,7 +161,7 @@ export function ProductForm({ productId }: { productId?: string }) {
   const router = useRouter();
   const editing = productId !== undefined;
 
-  const { data, error: loadError } = useQuery(async () => {
+  const { data, error: loadError, reload } = useQuery(async () => {
     const supabase = getSupabase();
     const [franchises, product] = await Promise.all([
       supabase.from("franchises").select("slug,name_en").order("sort_order"),
@@ -182,7 +190,7 @@ export function ProductForm({ productId }: { productId?: string }) {
     return (
       <>
         {back}
-        {loadError ? <Notice>{loadError}</Notice> : <Spinner />}
+        {loadError ? <ErrorWithRetry error={loadError} onRetry={reload} /> : <Spinner />}
       </>
     );
   }
@@ -248,7 +256,7 @@ function FormBody({
     setError(null);
     setSaved(false);
 
-    const result = toPayload(f);
+    const result = toPayload(f, editing);
     if ("error" in result) {
       setError(result.error);
       return;
@@ -361,22 +369,24 @@ function FormBody({
         <Field label="Set" required hint="e.g. Origins, Ink Rising">
           <Input value={f.set_name} onChange={(e) => patch({ set_name: e.target.value })} required />
         </Field>
-        <Field label="Card number">
-          <Input value={f.card_number} onChange={(e) => patch({ card_number: e.target.value })} />
-        </Field>
+        {f.product_type === "single_card" && (
+          <Field label="Card number" hint="e.g. 042/298">
+            <Input value={f.card_number} onChange={(e) => patch({ card_number: e.target.value })} />
+          </Field>
+        )}
         {f.product_type === "single_card" && (
           <Field label="Rarity">
             <Select value={f.rarity} onChange={(e) => patch({ rarity: e.target.value as Rarity | "" })}>
               <option value="">—</option>
               {RARITIES.map((r) => (
                 <option key={r} value={r}>
-                  {r}
+                  {r.charAt(0).toUpperCase() + r.slice(1)}
                 </option>
               ))}
             </Select>
           </Field>
         )}
-        <Field label="Condition">
+        <Field label="Condition" hint={f.product_type === "single_card" ? "e.g. Near Mint" : "e.g. New, sealed"}>
           <Input value={f.condition} onChange={(e) => patch({ condition: e.target.value })} />
         </Field>
         <Field label="Grade" hint="Optional, e.g. PSA 10">
@@ -430,7 +440,7 @@ function FormBody({
             required
           />
         </Field>
-        <Field label="Product id" required hint={editing ? "Can't be changed" : "Unique, permanent"}>
+        <Field label="Product id" required hint={editing ? "Can't be changed" : "Unique, permanent — filled in from the franchise and slug"}>
           <Input
             value={f.id}
             readOnly={editing}
@@ -444,10 +454,10 @@ function FormBody({
       </Card>
 
       <Card className="flex flex-col gap-5 p-4">
-        <Field label="Main image" required>
+        <Field label="Main image" required group>
           <ImageField value={f.image} onChange={(image) => patch({ image })} folder={folder} />
         </Field>
-        <Field label="More images">
+        <Field label="More images" group>
           <GalleryField value={f.images} onChange={(images) => patch({ images })} folder={folder} />
         </Field>
       </Card>

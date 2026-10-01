@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -36,13 +37,16 @@ async function resolveSession(session: Session | null): Promise<AuthState> {
     .eq("id", session.user.id)
     .maybeSingle();
 
+  // `scope: "local"` only clears this browser's admin session. The default
+  // ("global") revokes every session of the account — refusing a customer
+  // here would also sign them out of the storefront on all their devices.
   if (error) {
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     return { status: "signed-out", notice: errorMessage(error) };
   }
   if (data?.role !== "admin") {
     // A customer account must not linger in the admin origin.
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: "local" });
     return {
       status: "signed-out",
       notice: "This account doesn't have admin access.",
@@ -57,16 +61,26 @@ async function resolveSession(session: Session | null): Promise<AuthState> {
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading" });
+  // signIn() resolves its own session; the SIGNED_IN event it triggers must
+  // not run a second, racing resolveSession (double profile read + signOut).
+  const signingIn = useRef(false);
 
   useEffect(() => {
     const supabase = getSupabase();
     let cancelled = false;
 
-    supabase.auth.getSession().then(({ data }) => {
-      resolveSession(data.session).then((next) => {
-        if (!cancelled) setState(next);
-      });
-    });
+    supabase.auth
+      .getSession()
+      .then(({ data }) => resolveSession(data.session))
+      .then(
+        (next) => {
+          if (!cancelled) setState(next);
+        },
+        // e.g. offline — don't leave the app stuck on "Checking your session…".
+        (err) => {
+          if (!cancelled) setState({ status: "signed-out", notice: errorMessage(err) });
+        }
+      );
 
     // Never await Supabase calls inside this callback (it holds the auth
     // lock) — only react to sign-out, and to a sign-in from another tab.
@@ -75,7 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setState((prev) =>
           prev.status === "signed-out" ? prev : { status: "signed-out" }
         );
-      } else if (event === "SIGNED_IN") {
+      } else if (event === "SIGNED_IN" && !signingIn.current) {
         setTimeout(() => {
           resolveSession(session).then((next) => {
             if (!cancelled) setState(next);
@@ -92,13 +106,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     const supabase = getSupabase();
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) return error.message;
-
-    const next = await resolveSession(data.session);
+    signingIn.current = true;
+    let next: AuthState;
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      if (error) return error.message;
+      next = await resolveSession(data.session);
+    } catch (err) {
+      return errorMessage(err);
+    } finally {
+      signingIn.current = false;
+    }
     setState(next);
     return next.status === "admin"
       ? null
@@ -108,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
-    await getSupabase().auth.signOut();
+    await getSupabase().auth.signOut({ scope: "local" });
     setState({ status: "signed-out" });
   }, []);
 

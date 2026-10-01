@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { errorMessage } from "@/lib/supabase";
 
+/** Window event an order page dispatches after changing an order's status. */
+export const ORDERS_CHANGED_EVENT = "tcg:orders-changed";
+
 interface QueryResult<T> {
   /** Latest successful data — kept while a reload is in flight. */
   data: T | undefined;

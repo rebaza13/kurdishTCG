@@ -6,7 +6,7 @@ import { Link } from "@/i18n/navigation";
 import { ProductCard } from "@/components/product-card";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
-import { getFranchise, getProducts } from "@/lib/data";
+import { getFranchise, getProducts, parseProductKind } from "@/lib/data";
 import { FRANCHISE_ORDER } from "@/lib/data/franchises";
 import { localizedAlternates } from "@/lib/seo";
 import type { FranchiseSlug, Rarity } from "@tcg/types";
@@ -76,6 +76,7 @@ export default async function FranchiseListingPage({
   const sp = await searchParams;
   const page = Number(sp.page ?? 1) || 1;
   const rarity = sp.rarity?.split(",").filter(Boolean) as Rarity[] | undefined;
+  const kind = parseProductKind(sp.type);
 
   const [franchiseData, t, franchiseT, result] = await Promise.all([
     getFranchise(franchise, locale),
@@ -86,6 +87,7 @@ export default async function FranchiseListingPage({
       {
         page,
         pageSize: 24,
+        kind,
         rarity,
         set: sp.set,
         query: sp.q,
@@ -101,27 +103,31 @@ export default async function FranchiseListingPage({
 
   return (
     <div>
-      <div style={{ background: franchiseData.accent }}>
-        <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 flex items-end justify-between gap-8 text-[var(--color-accent-ink)]">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs uppercase tracking-[0.16em] font-heading font-[var(--font-heading-weight)] opacity-85">
+      <div
+        className="relative overflow-hidden"
+        style={{
+          // Darken the accent under the text so white copy stays AA on every
+          // franchise colour (SpongeBob yellow included) in both themes.
+          background: `linear-gradient(100deg, rgb(11 10 9 / 0.58), rgb(11 10 9 / 0.45)), ${franchiseData.accent}`,
+        }}
+      >
+        <div className="mx-auto flex max-w-[1440px] flex-col gap-4 px-4 py-9 text-white md:flex-row md:items-end md:justify-between md:gap-8 md:px-10 md:py-12">
+          <div className="flex min-w-0 flex-col gap-2">
+            <span className="text-xs uppercase tracking-[0.16em] font-heading font-[var(--font-heading-weight)] opacity-90">
               {franchiseData.badge}
             </span>
-            <h1 className="text-4xl md:text-5xl text-[var(--color-accent-ink)]">
-              {franchiseData.name}
-            </h1>
+            <h1 className="text-4xl md:text-6xl text-white break-words">{franchiseData.name}</h1>
           </div>
-          <span className="hidden md:block text-sm opacity-85">
-            {franchiseData.cardCount} {franchiseT("cards")} · {franchiseData.setCount}{" "}
-            {franchiseT("sets")}
+          <span className="font-mono text-xs opacity-90 md:text-sm">
+            {franchiseData.cardCount} {franchiseT("cards")} · {franchiseData.setCount} {franchiseT("sets")}
           </span>
         </div>
       </div>
 
-      <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 flex flex-col md:flex-row gap-10">
-        <FilterBar sets={result.sets} />
+      <div className="mx-auto max-w-[1440px] px-4 py-8 md:px-10 md:py-10 flex flex-col md:flex-row gap-8 md:gap-10">
+        <FilterBar sets={result.sets} kindCounts={result.kindCounts} />
 
-        <div className="flex-1 flex flex-col gap-6">
+        <div className="flex min-w-0 flex-1 flex-col gap-6">
           <p className="text-sm text-[var(--color-text-muted)]">
             {t("showingResults", { count: result.items.length, total: result.total })}
           </p>
@@ -131,9 +137,13 @@ export default async function FranchiseListingPage({
               {franchiseData.cardCount === 0 ? t("noProductsYet") : t("noResults")}
             </p>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="kt-card-grid">
               {result.items.map((p) => (
-                <ProductCard key={p.id} product={p} />
+                <ProductCard
+                  key={p.id}
+                  product={p}
+                  sizes="(max-width: 640px) 46vw, (max-width: 1280px) 28vw, 280px"
+                />
               ))}
             </div>
           )}
@@ -145,7 +155,7 @@ export default async function FranchiseListingPage({
               </span>
               <div className="flex gap-2">
                 <PageLink franchise={franchise} sp={sp} page={Math.max(1, page - 1)} disabled={page <= 1}>
-                  ←
+                  <span className="inline-block rtl:-scale-x-100">←</span>
                 </PageLink>
                 <PageLink
                   franchise={franchise}
@@ -153,7 +163,7 @@ export default async function FranchiseListingPage({
                   page={Math.min(totalPages, page + 1)}
                   disabled={page >= totalPages}
                 >
-                  →
+                  <span className="inline-block rtl:-scale-x-100">→</span>
                 </PageLink>
               </div>
             </div>

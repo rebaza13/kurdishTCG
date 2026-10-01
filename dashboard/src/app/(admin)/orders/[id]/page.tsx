@@ -6,13 +6,14 @@ import { useParams } from "next/navigation";
 import { ArrowLeft, MessageCircle, Phone, RefreshCw } from "lucide-react";
 import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
-import { useQuery } from "@/lib/use-query";
+import { ORDERS_CHANGED_EVENT, useQuery } from "@/lib/use-query";
 import { NEXT_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
 import { cancelFibPayment, refundFibPayment } from "@/lib/fib-admin";
 import {
   Button,
   Card,
   ConfirmButton,
+  ErrorWithRetry,
   Notice,
   PageHeader,
   PaymentStatusBadge,
@@ -56,11 +57,13 @@ function whatsappLink(phone: string): string {
   return `https://wa.me/${digits}`;
 }
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 py-2 text-sm">
-      <dt className="text-muted">{label}</dt>
-      <dd className="text-right">{children}</dd>
+      <dt className="shrink-0 text-muted">{label}</dt>
+      <dd className="min-w-0 break-words text-right">{children}</dd>
     </div>
   );
 }
@@ -73,6 +76,9 @@ export default function OrderDetailPage() {
   const [paymentActionError, setPaymentActionError] = useState<string | null>(null);
 
   const { data: order, error, reload } = useQuery(async () => {
+    // A malformed id would otherwise surface Postgres' "invalid input syntax
+    // for type uuid" instead of a plain "not found".
+    if (!UUID_RE.test(id)) return null;
     const { data, error } = await getSupabase()
       .from("orders")
       .select("*, order_items(*)")
@@ -93,6 +99,7 @@ export default function OrderDetailPage() {
         .select("id");
       if (error) throw error;
       assertWritten(data, "The status change");
+      window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
       // Best-effort: an order cancelled while its FIB payment is still
       // unpaid shouldn't stay payable. Never blocks the status change.
       if (next === "cancelled" && order?.payment_method === "fib" && order.payment_status === "pending") {
@@ -113,7 +120,7 @@ export default function OrderDetailPage() {
       await refundFibPayment(id);
       reload();
     } catch (err) {
-      setPaymentActionError(err instanceof Error ? err.message : "Refund failed.");
+      setPaymentActionError(errorMessage(err));
     } finally {
       setPaymentAction(null);
     }
@@ -126,7 +133,7 @@ export default function OrderDetailPage() {
       await cancelFibPayment(id);
       reload();
     } catch (err) {
-      setPaymentActionError(err instanceof Error ? err.message : "Cancel failed.");
+      setPaymentActionError(errorMessage(err));
     } finally {
       setPaymentAction(null);
     }
@@ -145,7 +152,7 @@ export default function OrderDetailPage() {
     return (
       <>
         {back}
-        {error ? <Notice>{error}</Notice> : <Spinner />}
+        {error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />}
       </>
     );
   }
@@ -159,6 +166,7 @@ export default function OrderDetailPage() {
   }
 
   const next = NEXT_STATUSES[order.status] ?? [];
+  const paidOnline = order.payment_method === "fib" && order.payment_status === "paid";
 
   return (
     <>
@@ -175,24 +183,36 @@ export default function OrderDetailPage() {
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <div className="flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card>
             <div className="border-b border-line px-4 py-3 text-sm font-semibold">Items</div>
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[28rem] text-sm">
+              <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-line text-left text-xs text-muted">
                     <th className="px-4 py-2.5 font-medium">Product</th>
                     <th className="px-4 py-2.5 text-right font-medium">Qty</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Price</th>
+                    <th className="hidden px-4 py-2.5 text-right font-medium sm:table-cell">Price</th>
                     <th className="px-4 py-2.5 text-right font-medium">Line</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-line">
+                  {order.order_items.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={4}
+                        className="px-4 py-6 text-center text-sm text-muted [overflow-wrap:anywhere]"
+                      >
+                        No line items visible. If this order has items, the database is
+                        missing the admin read policy from migration
+                        0005_order_items_admin_read.sql.
+                      </td>
+                    </tr>
+                  )}
                   {order.order_items.map((item) => (
                     <tr key={item.id}>
-                      <td className="px-4 py-3">
+                      <td className="break-words px-4 py-3">
                         <Link
                           href={`/products/${encodeURIComponent(item.product_id)}`}
                           className="hover:text-accent"
@@ -201,10 +221,10 @@ export default function OrderDetailPage() {
                         </Link>
                       </td>
                       <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">
                         {money(item.unit_price, order.currency)}
                       </td>
-                      <td className="px-4 py-3 text-right tabular-nums">
+                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
                         {money(Number(item.unit_price) * item.quantity, order.currency)}
                       </td>
                     </tr>
@@ -226,7 +246,7 @@ export default function OrderDetailPage() {
           </Card>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <Card className="p-4">
             <h2 className="mb-2 text-sm font-semibold">Update status</h2>
             {next.length === 0 ? (
@@ -242,6 +262,7 @@ export default function OrderDetailPage() {
                       loading={saving === s}
                       disabled={saving !== null}
                       onConfirm={() => changeStatus(s)}
+                      confirmLabel="Click again to cancel"
                     >
                       Cancel order
                     </ConfirmButton>
@@ -258,6 +279,13 @@ export default function OrderDetailPage() {
                   )
                 )}
               </div>
+            )}
+            {paidOnline && (next.includes("cancelled") || order.status === "cancelled") && (
+              <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">
+                {order.status === "cancelled"
+                  ? "This order is cancelled but its FIB payment is still paid — refund it below."
+                  : "This order was paid with FIB. Cancelling does not return the money — refund the payment below as well."}
+              </p>
             )}
             <p className="mt-3 text-xs text-muted">
               Stock is not changed automatically — adjust it on the product.
@@ -288,7 +316,9 @@ export default function OrderDetailPage() {
                 )}
               </dl>
               {paymentActionError && (
-                <p className="mt-2 text-xs text-danger">{paymentActionError}</p>
+                <div className="mt-3">
+                  <Notice>{paymentActionError}</Notice>
+                </div>
               )}
               {order.payment_status === "paid" && (
                 <div className="mt-3">
@@ -296,6 +326,7 @@ export default function OrderDetailPage() {
                     loading={paymentAction === "refund"}
                     disabled={paymentAction !== null}
                     onConfirm={handleRefund}
+                    confirmLabel="Click again to refund"
                   >
                     Refund payment
                   </ConfirmButton>

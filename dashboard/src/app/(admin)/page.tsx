@@ -5,7 +5,7 @@ import type { OrderStatus } from "@tcg/types";
 import { getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { CURRENCY, dateTime, money, shortId } from "@/lib/format";
-import { Card, EmptyState, Notice, PageHeader, Spinner, StatusBadge } from "@/components/ui";
+import { Card, EmptyState, ErrorWithRetry, PageHeader, Spinner, StatusBadge } from "@/components/ui";
 
 interface OrderRow {
   id: string;
@@ -57,23 +57,29 @@ function Stat({
   href?: string;
 }) {
   const body = (
-    <Card className="p-4 transition-colors hover:bg-surface-2">
+    <Card className="h-full p-4 transition-colors hover:bg-surface-2">
       <div className="text-xs font-medium text-muted">{label}</div>
-      <div className="mt-1 text-2xl font-semibold tracking-tight">{value}</div>
-      {hint && <div className="mt-0.5 text-xs text-muted">{hint}</div>}
+      <div className="mt-1 text-2xl font-semibold tabular-nums tracking-tight">{value}</div>
+      {hint && <div className="mt-0.5 truncate text-xs text-muted">{hint}</div>}
     </Card>
   );
-  return href ? <Link href={href}>{body}</Link> : body;
+  return href ? (
+    <Link href={href} className="min-w-0 rounded-xl focus-visible:outline-2 focus-visible:outline-accent">
+      {body}
+    </Link>
+  ) : (
+    body
+  );
 }
 
 export default function OverviewPage() {
-  const { data, error, loading } = useQuery(loadOverview, []);
+  const { data, error, loading, reload } = useQuery(loadOverview, []);
 
   if (!data) {
     return (
       <>
         <PageHeader title="Overview" />
-        {error ? <Notice>{error}</Notice> : <Spinner />}
+        {error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />}
       </>
     );
   }
@@ -94,7 +100,7 @@ export default function OverviewPage() {
     <>
       <PageHeader
         title="Overview"
-        subtitle={loading ? "Refreshing…" : "Cash on delivery — confirm each request by phone."}
+        subtitle={loading ? "Refreshing…" : "Confirm each new request by phone before it ships."}
       />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -124,8 +130,8 @@ export default function OverviewPage() {
         />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[3fr_2fr]">
-        <Card>
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        <Card className="min-w-0">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h2 className="text-sm font-semibold">Latest orders</h2>
             <Link href="/orders" className="text-xs text-accent hover:underline">
@@ -148,8 +154,10 @@ export default function OverviewPage() {
                         #{shortId(o.id)} · {o.city} · {dateTime(o.created_at)}
                       </div>
                     </div>
-                    <div className="text-sm tabular-nums">{money(o.total, o.currency)}</div>
-                    <StatusBadge status={o.status} />
+                    <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+                      <div className="text-sm tabular-nums">{money(o.total, o.currency)}</div>
+                      <StatusBadge status={o.status} />
+                    </div>
                   </Link>
                 </li>
               ))}
@@ -157,7 +165,7 @@ export default function OverviewPage() {
           )}
         </Card>
 
-        <Card>
+        <Card className="min-w-0">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <h2 className="text-sm font-semibold">Low stock</h2>
             <span className="text-xs text-muted">≤ {LOW_STOCK} left</span>
@@ -179,8 +187,8 @@ export default function OverviewPage() {
                     <span
                       className={
                         p.stock === 0
-                          ? "text-sm font-semibold text-danger"
-                          : "text-sm font-semibold text-warn"
+                          ? "shrink-0 text-sm font-semibold text-danger"
+                          : "shrink-0 text-sm font-semibold tabular-nums text-warn"
                       }
                     >
                       {p.stock === 0 ? "Out" : p.stock}

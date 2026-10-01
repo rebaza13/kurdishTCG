@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search } from "lucide-react";
+import { useSearchParams } from "next/navigation";
 import { useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 
@@ -10,6 +11,7 @@ import { Button } from "@/components/ui/button";
 export function SearchForm({ initialQuery }: { initialQuery: string }) {
   const t = useTranslations("nav");
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [query, setQuery] = useState(initialQuery);
 
   return (
@@ -18,8 +20,14 @@ export function SearchForm({ initialQuery }: { initialQuery: string }) {
       className="mb-8 flex items-center gap-2"
       onSubmit={(e) => {
         e.preventDefault();
+        // Keep the active product-type filter (?type=) across new searches.
+        const params = new URLSearchParams();
         const q = query.trim();
-        router.push(q ? `/search?q=${encodeURIComponent(q)}` : "/search");
+        if (q) params.set("q", q);
+        const type = searchParams.get("type");
+        if (type) params.set("type", type);
+        const qs = params.toString();
+        router.push(qs ? `/search?${qs}` : "/search");
       }}
     >
       <label className="flex min-w-0 flex-1 items-center gap-2.5 border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] px-3.5 py-3 rounded-[var(--radius-sm)] focus-within:border-[var(--color-border-strong)]">

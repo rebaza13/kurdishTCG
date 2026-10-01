@@ -93,7 +93,12 @@ export interface CartItem {
 
 export type ProductSort = "newest" | "price-asc" | "price-desc" | "rarity";
 
+/** Broad shelf a product sits on: loose single cards vs everything sealed. */
+export type ProductKind = "singles" | "sealed";
+
 export interface ProductFilters {
+  /** Restrict to single cards or sealed product; omitted = both. */
+  kind?: ProductKind;
   rarity?: Rarity[];
   minPrice?: number;
   maxPrice?: number;
@@ -110,6 +115,8 @@ export interface ProductListResult {
   page: number;
   pageSize: number;
   sets: string[];
+  /** How many results each kind would have under the same filters (ignoring `kind`). */
+  kindCounts?: Record<ProductKind, number>;
 }
 
 export interface Order {

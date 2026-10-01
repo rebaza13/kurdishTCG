@@ -53,11 +53,12 @@ export default async function HomePage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, meta, franchises, featured] = await Promise.all([
+  const [t, meta, franchises, featured, singles] = await Promise.all([
     getTranslations("home"),
     getTranslations({ locale, namespace: "meta" }),
     getFranchises(locale),
-    getFeaturedProducts(8, locale),
+    getFeaturedProducts(8, locale, "sealed"),
+    getFeaturedProducts(8, locale, "singles"),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -92,6 +93,8 @@ export default async function HomePage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
       />
 
+      {/* Clip the rotated marquee / hero ring so the page never scrolls sideways. */}
+      <div className="kt-home">
       <PackRipHero franchises={franchises} />
 
       <div className="kt-marquee">
@@ -107,7 +110,7 @@ export default async function HomePage({
 
       <section id="franchises" className="kt-section">
         <Reveal className="kt-section__head">
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="kt-section__heading">
             <span className="kt-eyebrow">{t("franchisesKicker")}</span>
             <h2 className="kt-section__title">{t("franchisesTitle")}</h2>
           </div>
@@ -122,15 +125,35 @@ export default async function HomePage({
 
       <section id="pulls" className="kt-section">
         <Reveal className="kt-section__head">
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            <span className="kt-eyebrow">{t("featuredKicker")}</span>
+          <div className="kt-section__heading">
+            <span className="kt-eyebrow">{t("sealedKicker")}</span>
             <h2 className="kt-section__title">{t("featuredTitle")}</h2>
           </div>
+          <Link href="/search?type=sealed" className="kt-section__link">
+            {t("viewAll")}
+          </Link>
         </Reveal>
         <HomeProductGrid products={featured} franchises={franchises} />
       </section>
 
+      {singles.length > 0 && (
+        <section id="singles" className="kt-section">
+          <Reveal className="kt-section__head">
+            <div className="kt-section__heading">
+              <span className="kt-eyebrow">{t("singlesKicker")}</span>
+              <h2 className="kt-section__title">{t("singlesTitle")}</h2>
+              <p className="kt-section__sub">{t("singlesBody")}</p>
+            </div>
+            <Link href="/search?type=singles" className="kt-section__link">
+              {t("viewAllSingles")}
+            </Link>
+          </Reveal>
+          <HomeProductGrid products={singles} franchises={franchises} />
+        </section>
+      )}
+
       <NewsletterBanner />
+      </div>
     </>
   );
 }

@@ -11,14 +11,14 @@ import { cn } from "@/lib/utils";
 import { Thumb } from "@/components/image-upload";
 import {
   Badge,
-  Button,
   Card,
   EmptyState,
+  ErrorWithRetry,
   Input,
-  Notice,
   PageHeader,
   Select,
   Spinner,
+  buttonClass,
 } from "@/components/ui";
 
 interface ProductRow {
@@ -57,6 +57,12 @@ function StockCell({ product, onSaved }: { product: ProductRow; onSaved: () => v
 
   async function commit() {
     if (draft === null) return;
+    // An emptied field would be Number("") === 0 — silently zeroing stock.
+    if (draft.trim() === "") {
+      setDraft(null);
+      setState("idle");
+      return;
+    }
     const next = Number(draft);
     if (!Number.isInteger(next) || next < 0) {
       setState("error");
@@ -108,7 +114,7 @@ function StockCell({ product, onSaved }: { product: ProductRow; onSaved: () => v
           }
         }}
         className={cn(
-          "h-8 w-20 rounded-md border bg-surface px-2 text-right text-sm tabular-nums focus-visible:border-accent focus-visible:outline-none",
+          "h-9 w-20 rounded-md border bg-surface px-2 text-right text-base tabular-nums focus-visible:border-accent focus-visible:outline-none sm:h-8 sm:text-sm",
           state === "error" ? "border-danger" : "border-line",
           product.stock === 0 && draft === null && "text-danger"
         )}
@@ -132,10 +138,8 @@ export default function ProductsPage() {
       title="Products"
       subtitle="Cards, packs, boxes and decks in the storefront."
       actions={
-        <Link href="/products/new">
-          <Button variant="primary">
-            <Plus className="size-4" /> New product
-          </Button>
+        <Link href="/products/new" className={buttonClass({ variant: "primary" })}>
+          <Plus className="size-4" /> New product
         </Link>
       }
     />
@@ -145,11 +149,12 @@ export default function ProductsPage() {
     return (
       <>
         {header}
-        {error ? <Notice>{error}</Notice> : <Spinner />}
+        {error ? <ErrorWithRetry error={error} onRetry={reload} /> : <Spinner />}
       </>
     );
   }
 
+  const franchiseName = new Map(data.franchises.map((f) => [f.slug, f.name_en]));
   const q = search.trim().toLowerCase();
   const rows = data.products.filter(
     (p) =>
@@ -167,8 +172,8 @@ export default function ProductsPage() {
     <>
       {header}
 
-      <div className="mb-4 grid gap-2 sm:grid-cols-[1fr_auto_auto_auto]">
-        <div className="relative">
+      <div className="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto_auto]">
+        <div className="relative col-span-2 sm:col-span-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted" />
           <Input
             value={search}
@@ -198,6 +203,7 @@ export default function ProductsPage() {
           value={stockFilter}
           onChange={(e) => setStockFilter(e.target.value as "" | "low" | "out")}
           aria-label="Stock level"
+          className="col-span-2 sm:col-span-1"
         >
           <option value="">Any stock</option>
           <option value="low">Low (≤ 3)</option>
@@ -205,9 +211,48 @@ export default function ProductsPage() {
         </Select>
       </div>
 
-      <Card className="overflow-x-auto">
+      {/* Phones: stacked rows so price and stock stay on screen. */}
+      {rows.length > 0 && (
+        <Card className="sm:hidden">
+          <ul className="divide-y divide-line">
+            {rows.map((p) => (
+              <li key={p.id} className="flex items-center gap-3 px-4 py-3">
+                <Link
+                  href={`/products/${encodeURIComponent(p.id)}`}
+                  className="flex min-w-0 flex-1 items-center gap-3"
+                >
+                  <Thumb src={p.image} className="size-12" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{p.name_en}</span>
+                    <span className="block truncate text-xs text-muted">
+                      {PRODUCT_TYPE_LABEL[p.product_type] ?? p.product_type} ·{" "}
+                      {franchiseName.get(p.franchise_slug) ?? p.franchise_slug}
+                    </span>
+                    <span className="block text-xs tabular-nums">{money(p.price)}</span>
+                  </span>
+                </Link>
+                <StockCell product={p} onSaved={reload} />
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+
+      <Card className={cn("overflow-x-auto", rows.length > 0 && "hidden sm:block")}>
         {rows.length === 0 ? (
-          <EmptyState>No products match.</EmptyState>
+          <EmptyState>
+            {data.products.length === 0 ? (
+              <>
+                No products yet.{" "}
+                <Link href="/products/new" className="text-accent hover:underline">
+                  Add the first one
+                </Link>
+                .
+              </>
+            ) : (
+              "No products match these filters."
+            )}
+          </EmptyState>
         ) : (
           <table className="w-full min-w-[44rem] text-sm">
             <thead>
@@ -228,7 +273,7 @@ export default function ProductsPage() {
                       className="flex items-center gap-3"
                     >
                       <Thumb src={p.image} />
-                      <span className="min-w-0">
+                      <span className="min-w-0 max-w-64">
                         <span className="block truncate font-medium hover:text-accent">
                           {p.name_en}
                         </span>
@@ -236,7 +281,7 @@ export default function ProductsPage() {
                       </span>
                     </Link>
                   </td>
-                  <td className="px-4 py-2.5">{p.franchise_slug}</td>
+                  <td className="px-4 py-2.5">{franchiseName.get(p.franchise_slug) ?? p.franchise_slug}</td>
                   <td className="px-4 py-2.5">
                     <Badge>{PRODUCT_TYPE_LABEL[p.product_type] ?? p.product_type}</Badge>
                   </td>

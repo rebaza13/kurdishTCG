@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Search, User } from "lucide-react";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -10,7 +10,7 @@ import { CartButton, CartDrawer } from "@/components/cart-drawer";
 
 const NAV_ITEMS = [
   { href: "/franchises", key: "franchises" },
-  { href: "/franchises?sort=newest", key: "newArrivals" },
+  { href: "/search", key: "newArrivals" },
   { href: "/sell", key: "sellToUs" },
 ] as const;
 
@@ -19,6 +19,22 @@ export function Header() {
   const meta = useTranslations("meta");
   const router = useRouter();
   const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+
+  // The search box advertises a "/" shortcut (the <kbd> hint) — honour it.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "/" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("input, textarea, select, [contenteditable='true']")) return;
+      const input = searchRef.current;
+      if (!input || input.offsetParent === null) return; // hidden below 1180px
+      e.preventDefault();
+      input.focus();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   return (
     <header className="kt-header">
@@ -43,7 +59,7 @@ export function Header() {
           </span>
         </Link>
 
-        <nav className="kt-nav">
+        <nav className="kt-nav" aria-label={t("shop")}>
           {NAV_ITEMS.map((item) => (
             <Link key={item.key} href={item.href}>
               {t(item.key)}
@@ -61,13 +77,16 @@ export function Header() {
             if (query.trim()) router.push(`/search?q=${encodeURIComponent(query.trim())}`);
           }}
         >
-          <Search className="size-[17px]" strokeWidth={2} />
+          <Search className="size-[17px]" strokeWidth={2} aria-hidden />
           <input
+            ref={searchRef}
+            enterKeyHint="search"
+            aria-label={t("search")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
           />
-          <kbd>/</kbd>
+          <kbd aria-hidden>/</kbd>
         </form>
 
         <div className="kt-header__actions">

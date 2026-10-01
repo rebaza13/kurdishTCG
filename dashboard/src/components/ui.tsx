@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ComponentProps, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ComponentProps, type ReactNode } from "react";
 import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { cn } from "@/lib/utils";
@@ -9,10 +9,31 @@ import { PAYMENT_STATUS_LABEL, STATUS_LABEL } from "@/lib/format";
 /* ── Buttons ─────────────────────────────────────────────────────────── */
 
 type ButtonProps = ComponentProps<"button"> & {
-  variant?: "primary" | "secondary" | "ghost" | "danger";
+  variant?: ButtonVariant;
   size?: "md" | "sm";
   loading?: boolean;
 };
+
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+
+/** Class list for a button — also used to style a `<Link>` as a button. */
+export function buttonClass({
+  variant = "secondary",
+  size = "md",
+  className,
+}: { variant?: ButtonVariant; size?: "md" | "sm"; className?: string } = {}) {
+  return cn(
+    "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg font-medium transition-colors",
+    "disabled:cursor-not-allowed disabled:opacity-50",
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
+    size === "md" ? "h-10 px-4 text-sm" : "h-8 px-3 text-xs",
+    variant === "primary" && "bg-accent text-accent-fg hover:opacity-90",
+    variant === "secondary" && "border border-line bg-surface text-fg hover:bg-surface-2",
+    variant === "ghost" && "text-muted hover:bg-surface-2 hover:text-fg",
+    variant === "danger" && "border border-danger/40 text-danger hover:bg-danger/10",
+    className
+  );
+}
 
 export function Button({
   variant = "secondary",
@@ -28,19 +49,8 @@ export function Button({
     <button
       type={type}
       disabled={disabled || loading}
-      className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-lg font-medium transition-colors",
-        "disabled:cursor-not-allowed disabled:opacity-50",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent",
-        size === "md" ? "h-10 px-4 text-sm" : "h-8 px-3 text-xs",
-        variant === "primary" && "bg-accent text-accent-fg hover:opacity-90",
-        variant === "secondary" &&
-          "border border-line bg-surface text-fg hover:bg-surface-2",
-        variant === "ghost" && "text-muted hover:bg-surface-2 hover:text-fg",
-        variant === "danger" &&
-          "border border-danger/40 text-danger hover:bg-danger/10",
-        className
-      )}
+      aria-busy={loading || undefined}
+      className={buttonClass({ variant, size, className })}
       {...props}
     >
       {loading && <Loader2 className="size-4 animate-spin" />}
@@ -54,26 +64,31 @@ export function ConfirmButton({
   onConfirm,
   children,
   confirmLabel = "Click again to confirm",
+  className,
   ...props
-}: Omit<ButtonProps, "onClick"> & {
+}: Omit<ButtonProps, "onClick" | "variant"> & {
   onConfirm: () => void;
   confirmLabel?: string;
 }) {
   const [armed, setArmed] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
+  useEffect(() => () => clearTimeout(timer.current), []);
+
   return (
     <Button
       {...props}
       variant="danger"
       onClick={() => {
+        clearTimeout(timer.current);
         if (!armed) {
           setArmed(true);
-          setTimeout(() => setArmed(false), 4000);
+          timer.current = setTimeout(() => setArmed(false), 4000);
           return;
         }
         setArmed(false);
         onConfirm();
       }}
-      className={cn(armed && "bg-danger text-accent-fg hover:bg-danger")}
+      className={cn(armed && "bg-danger text-accent-fg hover:bg-danger", className)}
     >
       {armed ? confirmLabel : children}
     </Button>
@@ -83,7 +98,7 @@ export function ConfirmButton({
 /* ── Form controls ───────────────────────────────────────────────────── */
 
 const controlClass =
-  "w-full rounded-lg border border-line bg-surface px-3 text-sm text-fg " +
+  "w-full min-w-0 rounded-lg border border-line bg-surface px-3 text-base text-fg sm:text-sm " +
   "placeholder:text-muted/70 focus-visible:border-accent focus-visible:outline-none " +
   "disabled:opacity-60";
 
@@ -101,28 +116,41 @@ export function Select({ className, ...props }: ComponentProps<"select">) {
   return <select className={cn(controlClass, "h-10", className)} {...props} />;
 }
 
+/**
+ * Label + control. Renders a `<label>` so clicking the text focuses the
+ * control — pass `group` when the children hold several controls (image
+ * pickers, colour + text input): a wrapping `<label>` forwards every click
+ * on its empty space to its FIRST control, e.g. a gallery's "remove" button.
+ */
 export function Field({
   label,
   hint,
   required,
+  group,
   children,
   className,
 }: {
   label: string;
   hint?: string;
   required?: boolean;
+  group?: boolean;
   children: ReactNode;
   className?: string;
 }) {
+  const Tag = group ? "div" : "label";
   return (
-    <label className={cn("flex flex-col gap-1.5", className)}>
+    <Tag
+      className={cn("flex min-w-0 flex-col gap-1.5", className)}
+      role={group ? "group" : undefined}
+      aria-label={group ? label : undefined}
+    >
       <span className="text-xs font-medium text-muted">
         {label}
         {required && <span className="text-danger"> *</span>}
       </span>
       {children}
       {hint && <span className="text-xs text-muted">{hint}</span>}
-    </label>
+    </Tag>
   );
 }
 
@@ -151,11 +179,11 @@ export function PageHeader({
 }) {
   return (
     <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+      <div className="min-w-0">
+        <h1 className="break-words text-xl font-semibold tracking-tight sm:text-2xl">{title}</h1>
         {subtitle && <p className="mt-1 text-sm text-muted">{subtitle}</p>}
       </div>
-      {actions && <div className="flex items-center gap-2">{actions}</div>}
+      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
     </div>
   );
 }
@@ -192,7 +220,19 @@ export function Notice({
       )}
     >
       <Icon className="mt-0.5 size-4 shrink-0" />
-      <div>{children}</div>
+      <div className="min-w-0 break-words">{children}</div>
+    </div>
+  );
+}
+
+/** A load error with a retry button (data pages). */
+export function ErrorWithRetry({ error, onRetry }: { error: string; onRetry: () => void }) {
+  return (
+    <div className="flex flex-col items-start gap-3">
+      <Notice>{error}</Notice>
+      <Button size="sm" onClick={onRetry}>
+        Try again
+      </Button>
     </div>
   );
 }

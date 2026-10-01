@@ -38,6 +38,9 @@ const RARITY_COMMON = ["common", "uncommon", "rare", "common"] as const;
 const RARITY_HIT = ["secret", "ultra", "holo"] as const;
 
 type Phase = "idle" | "shaking" | "open";
+
+/** 2π·88 — the stage ring's text path radius in its 200×200 viewBox. */
+const RING_CIRCUMFERENCE = 552;
 type BurstCard = { franchise: Franchise; hit: boolean; rarityKey: string; transform: string; z: number; delay: number };
 
 function prefersReducedMotion() {
@@ -54,6 +57,22 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
   const [phase, setPhase] = useState<Phase>("idle");
   const [burst, setBurst] = useState<BurstCard[]>([]);
   const [pulled, setPulled] = useState<{ rarityKey: string; name: string } | null>(null);
+
+  // Ring text: measure one copy, then repeat it as many whole times as fit
+  // the circle and stretch to the exact circumference — the loop closes
+  // cleanly in every locale without visibly spacing out Arabic script.
+  const ringText = t("stageRing");
+  const ringRef = useRef<SVGTextPathElement>(null);
+  useEffect(() => {
+    const el = ringRef.current;
+    if (!el) return;
+    el.removeAttribute("textLength");
+    el.textContent = ringText;
+    const one = el.getComputedTextLength();
+    const repeat = one > 0 ? Math.max(1, Math.round(RING_CIRCUMFERENCE / one)) : 2;
+    el.textContent = ringText.repeat(repeat);
+    el.setAttribute("textLength", String(RING_CIRCUMFERENCE));
+  }, [ringText]);
 
   const cards = useMemo(() => franchises.slice(0, 6), [franchises]);
   const open = phase === "open";
@@ -130,7 +149,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
             </span>
           </span>
         </h1>
-        <p className="kt-hero__desc">{t("heroTitleSecondary")}</p>
+        <p className="kt-hero__desc">{t("heroTitleSecondaryAll")}</p>
         <div className="kt-hero__chips">
           {cards.map((f) => (
             <Link key={f.slug} href={`/franchises/${f.slug}`} className="kt-hero__chip">
@@ -140,7 +159,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
           ))}
         </div>
         <div className="kt-hero__ctas">
-          <Link href="/franchises?sort=newest" className="kt-btn-primary">
+          <Link href="/search" className="kt-btn-primary">
             <span>{t("shopNow")}</span>
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
               <path d="M5 12h14M13 6l6 6-6 6" />
@@ -162,7 +181,9 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
                 <path id="kt-ring-path" d="M100,100 m-88,0 a88,88 0 1,1 176,0 a88,88 0 1,1 -176,0" />
               </defs>
               <text fill="currentColor">
-                <textPath href="#kt-ring-path">{t("stageRing").repeat(2)}</textPath>
+                <textPath ref={ringRef} href="#kt-ring-path" lengthAdjust="spacing">
+                  {ringText}
+                </textPath>
               </text>
             </svg>
           </div>

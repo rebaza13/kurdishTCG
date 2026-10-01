@@ -31,7 +31,7 @@ export function Footer() {
         <div className="kt-footer__col">
           <span className="kt-footer__col-label">{t("shop")}</span>
           <Link href="/franchises">{nav("franchises")}</Link>
-          <Link href="/franchises?sort=newest">{nav("newArrivals")}</Link>
+          <Link href="/search">{nav("newArrivals")}</Link>
           <Link href="/sell">{nav("sellToUs")}</Link>
           <Link href="/cart">{nav("cart")}</Link>
         </div>
@@ -54,7 +54,7 @@ export function Footer() {
         <span>
           © {new Date().getFullYear()} {meta("siteName")}
         </span>
-        <span>ERBIL · KURDISTAN</span>
+        <span>{t("location")}</span>
       </div>
 
       <div className="kt-footer__wordmark" aria-hidden>

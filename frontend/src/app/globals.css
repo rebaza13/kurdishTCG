@@ -1066,3 +1066,417 @@ h1, h2, h3, h4, h5, h6 {
 /* RTL-aware direction is handled per-locale via <html dir> — logical
    properties (gap, padding-inline, etc.) are used throughout so the
    layout mirrors automatically for ar / ckb. */
+
+/* ————————————————————————————————————————————————————————————————
+   Product card (kt-card) + franchise tile (kt-ftile)
+   Full-bleed image under the text; a scrim tinted with the franchise
+   accent rises from the bottom so title/price stay AA-legible in both
+   themes (the text always sits on the dark scrim, never on the page
+   background). Singles fill the card; sealed product is contained on a
+   lit plate and multiplied so its white studio backdrop disappears.
+   Tilt/glare/foil only for real pointers with motion allowed.
+   ———————————————————————————————————————————————————————————————— */
+.kt-card {
+  --card-accent: var(--color-accent);
+  --rarity: transparent;
+  --ink: #0b0a09;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 63 / 88;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--ink);
+  color: #fff;
+  box-shadow: 0 0 0 1px var(--color-border), 0 10px 24px -18px var(--color-shadow);
+  transition:
+    transform 0.45s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.35s ease;
+}
+.kt-card[data-rarity="common"] { --rarity: #cfc8bc; }
+.kt-card[data-rarity="uncommon"] { --rarity: #8ee0b8; }
+.kt-card[data-rarity="rare"] { --rarity: #8db2ff; }
+.kt-card[data-rarity="holo"] { --rarity: #6fe6ff; }
+.kt-card[data-rarity="ultra"] { --rarity: #ffc857; }
+.kt-card[data-rarity="secret"] { --rarity: #ff86de; }
+.kt-card[data-rarity="promo"] { --rarity: #ffa27a; }
+
+/* Layers — negative z inside the isolated card so the (static) body paints
+   above them and the stretched link resolves against the card. */
+.kt-card__media { position: absolute; inset: 0; z-index: -3; overflow: hidden; }
+.kt-card__img { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1), filter 0.3s ease; }
+.kt-card[data-kind="single"] .kt-card__img { object-fit: cover; transform: scale(1.025); }
+.kt-card[data-kind="sealed"] .kt-card__media {
+  background:
+    radial-gradient(115% 75% at 50% 30%,
+      color-mix(in oklab, var(--card-accent) 5%, #fdfbf7) 0%,
+      color-mix(in oklab, var(--card-accent) 18%, #efe9df) 52%,
+      color-mix(in oklab, var(--card-accent) 60%, #2c2621) 100%);
+}
+.kt-card[data-kind="sealed"] .kt-card__img {
+  object-fit: contain;
+  padding: 7% 8% 37%;
+  mix-blend-mode: multiply;
+}
+:root[data-theme="dark"] .kt-card[data-kind="sealed"] .kt-card__media { filter: brightness(0.9) saturate(1.05); }
+.kt-card[data-soldout] .kt-card__img { filter: grayscale(0.85); opacity: 0.75; }
+
+.kt-card__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    linear-gradient(to top,
+      rgb(11 10 9 / 0.97) 0%,
+      rgb(11 10 9 / 0.9) 30%,
+      color-mix(in srgb, var(--card-accent) 24%, rgb(11 10 9 / 0.72)) 46%,
+      color-mix(in srgb, var(--card-accent) 18%, rgb(11 10 9 / 0.3)) 58%,
+      transparent 72%);
+}
+.kt-card[data-kind="sealed"] .kt-card__scrim {
+  background:
+    linear-gradient(to top,
+      rgb(11 10 9 / 0.96) 0%,
+      rgb(11 10 9 / 0.88) 26%,
+      color-mix(in srgb, var(--card-accent) 30%, rgb(11 10 9 / 0.5)) 40%,
+      transparent 58%);
+}
+
+.kt-card__glare,
+.kt-card__foil { position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.35s ease; }
+.kt-card__glare {
+  z-index: -2;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 30%), rgb(255 255 255 / 0.32), transparent 45%);
+  mix-blend-mode: soft-light;
+}
+.kt-card__foil {
+  background:
+    linear-gradient(115deg,
+      transparent 18%,
+      hsl(185 100% 70% / 0.55) 36%,
+      hsl(285 100% 76% / 0.55) 46%,
+      hsl(50 100% 68% / 0.55) 56%,
+      hsl(150 100% 70% / 0.45) 64%,
+      transparent 80%);
+  background-size: 260% 260%;
+  background-position: var(--mx, 35%) var(--my, 35%);
+  mix-blend-mode: color-dodge;
+  opacity: 0.22;
+}
+
+/* Rarity edge: a thin coloured ring on every rated single, a rainbow ring
+   on secret rares. Sits above the stretched link but ignores the pointer. */
+.kt-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--rarity) 75%, transparent);
+}
+.kt-card[data-kind="sealed"]::after { box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08); }
+.kt-card[data-rarity="secret"]::after {
+  box-shadow: none;
+  padding: 1.5px;
+  background: conic-gradient(from 200deg, #ff86de, #6fe6ff, #ffe27a, #8ee0b8, #ff86de);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+
+/* Top row: franchise chip + stock tag (decorative for the pointer). */
+.kt-card__top {
+  position: absolute;
+  inset-inline: 10px;
+  top: 10px;
+  z-index: 2;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+  pointer-events: none;
+}
+.kt-card__chip,
+.kt-card__tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 9px;
+  border-radius: var(--radius-full);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.kt-card__chip {
+  background: rgb(11 10 9 / 0.62);
+  color: #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+}
+.kt-card__swatch { width: 7px; height: 7px; flex: none; border-radius: 2px; transform: rotate(45deg); background: var(--card-accent); }
+.kt-card__tag { flex: none; margin-inline-start: auto; background: var(--color-accent); color: #fff; }
+.kt-card__tag[data-tone="muted"] { background: rgb(11 10 9 / 0.72); }
+
+/* Body — static (not positioned) on purpose: the stretched link's ::after
+   resolves against the card itself. */
+.kt-card__body { display: flex; flex-direction: column; gap: 4px; padding: 12px; min-width: 0; }
+.kt-card__meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgb(255 255 255 / 0.82);
+}
+.kt-card__dot { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--card-accent); }
+.kt-card[data-kind="single"][data-rarity] .kt-card__dot { background: var(--rarity); box-shadow: 0 0 8px var(--rarity); }
+.kt-card[data-kind="single"][data-rarity] .kt-card__meta { color: color-mix(in srgb, var(--rarity) 70%, #fff); }
+.kt-card__name {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.18;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  color: #fff;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-wrap: pretty;
+}
+.kt-card__link { color: inherit; outline: none; }
+.kt-card__link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; }
+.kt-card__link:focus-visible { outline: none; }
+.kt-card:has(.kt-card__link:focus-visible) { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+.kt-card__set {
+  font-size: 11px;
+  line-height: 1.3;
+  color: rgb(255 255 255 / 0.72);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kt-card__footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 6px; min-height: 36px; }
+.kt-card__price {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+  color: #fff;
+  white-space: nowrap;
+}
+/* Actions (add-to-cart) must sit above the stretched link. */
+.kt-card__footer > :not(.kt-card__price) { position: relative; z-index: 3; }
+.kt-card .kt-add-btn { width: 38px; height: 38px; background: #fff; color: #17140f; }
+.kt-card .kt-add-btn:hover { background: var(--color-accent); color: #fff; }
+.kt-card .kt-add-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; background: #fff; color: #17140f; }
+
+@media (min-width: 640px) {
+  .kt-card__body { padding: 16px; gap: 5px; }
+  .kt-card__name { font-size: 17px; }
+  .kt-card__price { font-size: 15px; }
+  .kt-card .kt-add-btn { width: 42px; height: 42px; }
+}
+
+/* Hover — real pointers only, and only when motion is welcome. */
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kt-card { transform: perspective(1000px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)); }
+  .kt-card:hover {
+    transform: perspective(1000px) translateY(-6px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--card-accent) 45%, transparent),
+      0 26px 44px -22px color-mix(in srgb, var(--card-accent) 55%, var(--color-shadow));
+  }
+  .kt-card[data-foil]:hover {
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--rarity) 70%, transparent),
+      0 0 26px -4px color-mix(in srgb, var(--rarity) 55%, transparent),
+      0 26px 44px -22px var(--color-shadow);
+  }
+  .kt-card:hover .kt-card__img { transform: scale(1.06); }
+  .kt-card[data-kind="sealed"]:hover .kt-card__img { transform: scale(1.04) translateY(-1.5%); }
+  .kt-card:hover .kt-card__glare { opacity: 1; }
+  .kt-card:hover .kt-card__foil { opacity: 0.75; }
+  .kt-card:active { transform: perspective(1000px) translateY(-2px) scale(0.985); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kt-card, .kt-card__img { transition: none; }
+  .kt-card__foil { background-position: 35% 35%; }
+}
+
+/* Grids that hold kt-cards. */
+.kt-card-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 640px) { .kt-card-grid { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; } }
+@media (min-width: 1280px) { .kt-card-grid { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; } }
+.kt-card-grid > .kt-card { animation: kt-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards; }
+@media (prefers-reduced-motion: reduce) { .kt-card-grid > .kt-card { animation: none; } }
+
+/* Singles / Sealed segmented control (filter bar, search). */
+.kt-seg {
+  display: inline-flex;
+  max-width: 100%;
+  padding: 4px;
+  gap: 2px;
+  border-radius: var(--radius-full);
+  background: var(--color-chip);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.kt-seg::-webkit-scrollbar { display: none; }
+.kt-seg__item {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--color-text-muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+.kt-seg__item:hover { color: var(--color-text); }
+.kt-seg__item[data-active="true"] { background: var(--color-text); color: var(--color-bg); }
+.kt-seg__count { font-family: var(--font-mono); font-size: 11px; opacity: 0.75; }
+
+/* Franchise tile — same language as kt-card, 4:5. */
+.kt-ftile {
+  --card-accent: var(--color-accent);
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  aspect-ratio: 4 / 5;
+  min-width: 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  color: #fff;
+  background:
+    radial-gradient(110% 70% at 50% 30%,
+      color-mix(in oklab, var(--card-accent) 8%, #fdfbf7) 0%,
+      color-mix(in oklab, var(--card-accent) 30%, #efe9df) 45%,
+      color-mix(in oklab, var(--card-accent) 85%, #1c1814) 100%);
+  box-shadow: 0 0 0 1px var(--color-border);
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.35s ease;
+}
+.kt-ftile__img {
+  z-index: -2;
+  object-fit: contain;
+  padding: 8% 8% 36%;
+  mix-blend-mode: multiply;
+  transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+}
+:root[data-theme="dark"] .kt-ftile__img { filter: brightness(0.94); }
+.kt-ftile__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(to top,
+    rgb(11 10 9 / 0.95) 0%,
+    rgb(11 10 9 / 0.82) 22%,
+    color-mix(in srgb, var(--card-accent) 45%, rgb(11 10 9 / 0.4)) 40%,
+    transparent 60%);
+}
+.kt-ftile__badge {
+  position: absolute;
+  top: 12px;
+  inset-inline-start: 12px;
+  max-width: calc(100% - 24px);
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgb(11 10 9 / 0.62);
+  color: #fff;
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.kt-ftile__badge::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-inline-end: 6px;
+  border-radius: 2px;
+  transform: rotate(45deg);
+  background: var(--card-accent);
+  vertical-align: 1px;
+}
+.kt-ftile__body { display: flex; flex-direction: column; gap: 6px; padding: 14px; min-width: 0; }
+.kt-ftile__name { margin: 0; font-size: clamp(19px, 2.1vw, 28px); line-height: 1.05; letter-spacing: -0.035em; color: #fff; overflow-wrap: anywhere; }
+.kt-ftile__row { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-width: 0; }
+.kt-ftile__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-family: var(--font-mono); font-size: 11px; line-height: 1.3; color: rgb(255 255 255 / 0.82); }
+.kt-ftile__meta > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.kt-ftile__go {
+  width: 34px;
+  height: 34px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: #fff;
+  color: #17140f;
+  transition: transform 0.35s cubic-bezier(0.23, 1, 0.32, 1), background-color 0.2s ease, color 0.2s ease;
+}
+[dir="rtl"] .kt-ftile__go svg { transform: scaleX(-1); }
+.kt-ftile:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
+@media (min-width: 640px) { .kt-ftile__body { padding: 20px; gap: 8px; } .kt-ftile__meta { font-size: 12px; } }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kt-ftile:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--card-accent) 50%, transparent), 0 28px 48px -24px color-mix(in srgb, var(--card-accent) 60%, var(--color-shadow)); }
+  .kt-ftile:hover .kt-ftile__img { transform: scale(1.06) translateY(-2%); }
+  .kt-ftile:hover .kt-ftile__go { background: var(--card-accent); color: #fff; transform: translateX(3px); }
+  [dir="rtl"] .kt-ftile:hover .kt-ftile__go { transform: translateX(-3px); }
+}
+
+/* Product page media — sealed shots are contained on the same lit plate. */
+.product-media[data-fit="contain"] {
+  background:
+    radial-gradient(110% 75% at 50% 40%,
+      color-mix(in oklab, var(--card-accent, var(--color-accent)) 4%, #fdfbf7) 0%,
+      color-mix(in oklab, var(--card-accent, var(--color-accent)) 16%, #efe9df) 60%,
+      color-mix(in oklab, var(--card-accent, var(--color-accent)) 40%, #b9b0a3) 100%);
+}
+.product-media[data-fit="contain"] img { object-fit: contain; padding: 8%; mix-blend-mode: multiply; }
+:root[data-theme="dark"] .product-media[data-fit="contain"] { filter: brightness(0.92); }
+
+/* Section heading stack + sub copy; chip row → grid spacing. */
+.kt-section__heading { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 46rem; }
+.kt-section__sub { margin: 0; max-width: 52ch; font-size: 15px; line-height: 1.5; color: var(--color-text-muted); text-wrap: pretty; }
+.kt-chip-row + .kt-card-grid { margin-top: 18px; }
+@media (hover: none) { .kt-card:active { transform: scale(0.985); } }
+.kt-home { overflow-x: clip; }
+@media (max-width: 639px) {
+  /* Narrow cards: when a stock tag is shown, the franchise chip shrinks to its swatch. */
+  .kt-card__chip:has(+ .kt-card__tag) { padding: 7px; }
+  .kt-card__chip:has(+ .kt-card__tag) > :not(.kt-card__swatch) { display: none; }
+}

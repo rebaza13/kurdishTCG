@@ -9,6 +9,17 @@ export const dynamic = "force-dynamic";
 const RETRYABLE = new Set(["pending", "declined"]);
 
 /**
+ * A FIB decline auto-cancels a still-"requested" order (see lib/fib-sync).
+ * Paying again is only offered when that cancel came from FIB itself (code
+ * expired / FIB-side failure) — then the order is revived to "requested".
+ * An order the shop cancelled (admin cancel: no FIB declining reason, or an
+ * explicit PAYMENT_CANCELLATION) must not become payable again; before this
+ * check a customer could pay for a cancelled order and it would stay
+ * "cancelled" forever, since fib-sync only advances from "requested".
+ */
+const REVIVABLE_DECLINE_REASONS = new Set(["PAYMENT_EXPIRATION", "SERVER_FAILURE"]);
+
+/**
  * The FIB API has no "reissue the QR" endpoint — a payment's QR/app-links
  * only ever come back from create. So "retry" here means: cancel the stale
  * payment (best-effort — it may already be expired or declined at FIB) and
@@ -36,7 +47,7 @@ export async function POST(request: Request) {
   const admin = getSupabaseAdmin();
   const { data: order, error } = await admin
     .from("orders")
-    .select("id, user_id, payment_method, payment_status, total, fib_payment_id")
+    .select("id, user_id, status, payment_method, payment_status, total, fib_payment_id, fib_declining_reason")
     .eq("id", body.orderId)
     .maybeSingle();
   if (error) {
@@ -46,6 +57,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
   if (!RETRYABLE.has(order.payment_status ?? "")) {
+    return NextResponse.json({ error: "not_retryable" }, { status: 409 });
+  }
+  const revive =
+    order.status === "cancelled" &&
+    REVIVABLE_DECLINE_REASONS.has(order.fib_declining_reason ?? "");
+  if (order.status !== "requested" && !revive) {
     return NextResponse.json({ error: "not_retryable" }, { status: 409 });
   }
 
@@ -76,6 +93,7 @@ export async function POST(request: Request) {
       fib_valid_until: payment.validUntil,
       fib_declining_reason: null,
       fib_declined_at: null,
+      ...(revive ? { status: "requested" } : {}),
     })
     .eq("id", order.id);
   if (updateError) {

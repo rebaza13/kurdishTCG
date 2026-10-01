@@ -13,6 +13,14 @@ interface CheckoutItem {
 }
 
 interface CheckoutBody {
+  /**
+   * Client-generated UUID, one per checkout attempt, used as the order's
+   * primary key. Makes the endpoint idempotent without a schema change: a
+   * double-click or a retried request after a dropped response hits the same
+   * id and gets the already-created order back instead of a second order
+   * (and, for FIB, a second payable QR code).
+   */
+  orderId?: string;
   locale?: string;
   fullName?: string;
   phone?: string;
@@ -26,6 +34,10 @@ interface CheckoutBody {
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const MAX_LEN = { fullName: 120, city: 80, address: 500, notes: 1000 } as const;
 
 function pickName(row: { name_en: string; name_ar: string; name_ckb: string }, locale: Locale) {
   return row[`name_${locale}` as const] || row.name_en;
@@ -48,14 +60,31 @@ export async function POST(request: Request) {
   const paymentMethod = body.paymentMethod === "fib" ? "fib" : "cash";
   const rawItems = Array.isArray(body.items) ? body.items : [];
 
-  if (!fullName || !phone || !city || !address) {
+  if (!fullName || !city || !address) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+  if (!phone) {
+    return NextResponse.json({ error: "invalid_phone" }, { status: 400 });
+  }
+  if (
+    fullName.length > MAX_LEN.fullName ||
+    city.length > MAX_LEN.city ||
+    address.length > MAX_LEN.address ||
+    (notes?.length ?? 0) > MAX_LEN.notes
+  ) {
+    return NextResponse.json({ error: "field_too_long" }, { status: 400 });
   }
   if (
     rawItems.length === 0 ||
     rawItems.length > 50 ||
     rawItems.some(
-      (i) => typeof i.productId !== "string" || !i.productId || !Number.isInteger(i.quantity) || i.quantity <= 0
+      (i) =>
+        !i ||
+        typeof i.productId !== "string" ||
+        !i.productId ||
+        !Number.isInteger(i.quantity) ||
+        i.quantity <= 0 ||
+        i.quantity > 999
     )
   ) {
     return NextResponse.json({ error: "invalid_items" }, { status: 400 });
@@ -77,6 +106,13 @@ export async function POST(request: Request) {
   }
 
   const admin = getSupabaseAdmin();
+  const orderId = typeof body.orderId === "string" && UUID_RE.test(body.orderId)
+    ? body.orderId.toLowerCase()
+    : crypto.randomUUID();
+
+  // Idempotent replay: this attempt already created its order.
+  const replay = await findReplay(admin, orderId, user?.id ?? null, phone);
+  if (replay) return replay;
 
   // Price and validate stock from the database — never from what the
   // browser sent (see supabase/migrations/0003_fib_payments.sql).
@@ -123,7 +159,6 @@ export async function POST(request: Request) {
   }
 
   const total = subtotal;
-  const orderId = crypto.randomUUID();
 
   const orderRow: Record<string, unknown> = {
     id: orderId,
@@ -162,6 +197,11 @@ export async function POST(request: Request) {
     if (insertError) {
       // Don't leave a payable-but-orphaned payment sitting at FIB.
       await cancelFibPayment(payment.paymentId).catch(() => {});
+      // A concurrent duplicate of this same attempt won the insert.
+      if (insertError.code === "23505") {
+        const raced = await findReplay(admin, orderId, user?.id ?? null, phone);
+        if (raced) return raced;
+      }
       return NextResponse.json({ error: "server_error" }, { status: 500 });
     }
     const { error: itemsError } = await admin
@@ -170,7 +210,7 @@ export async function POST(request: Request) {
     if (itemsError) {
       await cancelFibPayment(payment.paymentId).catch(() => {});
       await admin.from("orders").delete().eq("id", orderId);
-      return NextResponse.json({ error: "server_error" }, { status: 500 });
+      return itemsErrorResponse(admin, itemsError);
     }
 
     return NextResponse.json({
@@ -189,6 +229,10 @@ export async function POST(request: Request) {
 
   const { error: insertError } = await admin.from("orders").insert(orderRow);
   if (insertError) {
+    if (insertError.code === "23505") {
+      const raced = await findReplay(admin, orderId, user?.id ?? null, phone);
+      if (raced) return raced;
+    }
     return NextResponse.json({ error: "server_error" }, { status: 500 });
   }
   const { error: itemsError } = await admin
@@ -196,8 +240,55 @@ export async function POST(request: Request) {
     .insert(orderItems.map((i) => ({ ...i, order_id: orderId })));
   if (itemsError) {
     await admin.from("orders").delete().eq("id", orderId);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return itemsErrorResponse(admin, itemsError);
   }
 
   return NextResponse.json({ orderId });
+}
+
+/**
+ * If `orderId` already exists, answer for it instead of creating anything:
+ * the original order when it's the same shopper's retry, 409 otherwise (a
+ * client can pick its own id, so never leak someone else's order). FIB QR
+ * codes aren't stored, so a replayed FIB checkout returns `replayed: true`
+ * and the client sends the shopper to the order page, whose "Pay now"
+ * issues a fresh code.
+ */
+async function findReplay(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  orderId: string,
+  userId: string | null,
+  phone: string
+): Promise<NextResponse | null> {
+  const { data: existing } = await admin
+    .from("orders")
+    .select("id, user_id, phone")
+    .eq("id", orderId)
+    .maybeSingle();
+  if (!existing) return null;
+  if (existing.user_id !== userId || existing.phone !== phone) {
+    return NextResponse.json({ error: "order_conflict" }, { status: 409 });
+  }
+  return NextResponse.json({ orderId, replayed: true });
+}
+
+/**
+ * The order_items stock trigger (migration 0007) raises `out_of_stock:<id>`
+ * when another checkout took the last units between our stock read and the
+ * insert — answer the same way as the up-front stock check.
+ */
+async function itemsErrorResponse(
+  admin: ReturnType<typeof getSupabaseAdmin>,
+  error: { message: string }
+) {
+  const match = /out_of_stock:(\S+)/.exec(error.message);
+  if (!match) {
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+  const productId = match[1];
+  const { data } = await admin.from("products").select("stock").eq("id", productId).maybeSingle();
+  return NextResponse.json(
+    { error: "out_of_stock", productId, available: data?.stock ?? 0 },
+    { status: 409 }
+  );
 }

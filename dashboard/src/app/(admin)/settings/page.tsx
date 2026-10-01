@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
-import { Button, Card, Field, Input, Notice, PageHeader, Spinner } from "@/components/ui";
+import { Button, Card, ErrorWithRetry, Field, Input, Notice, PageHeader, Spinner } from "@/components/ui";
 
 interface Settings {
   whatsapp_number: string | null;
@@ -21,6 +21,13 @@ function SettingsForm({ initial }: { initial: Settings }) {
     e.preventDefault();
     setError(null);
     setSaved(false);
+    // The storefront's contact page links to wa.me/<digits>, which only works
+    // with the country code — a local "0750…" number would open a dead chat.
+    const digits = whatsapp.replace(/[^0-9]/g, "");
+    if (whatsapp.trim() && (!/^\+?[0-9 ()-]+$/.test(whatsapp.trim()) || digits.startsWith("0") || digits.length < 8)) {
+      setError("Enter the WhatsApp number in international format, starting with the country code, e.g. +9647501234567.");
+      return;
+    }
     setSaving(true);
     try {
       const { data, error } = await getSupabase()
@@ -51,12 +58,14 @@ function SettingsForm({ initial }: { initial: Settings }) {
           <Input
             type="tel"
             dir="ltr"
+            inputMode="tel"
+            placeholder="+9647501234567"
             value={whatsapp}
             onChange={(e) => setWhatsapp(e.target.value)}
           />
         </Field>
         <Field label="Contact email">
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
+          <Input type="email" dir="ltr" placeholder="hello@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
         </Field>
       </Card>
       <div>
@@ -69,7 +78,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
 }
 
 export default function SettingsPage() {
-  const { data, error } = useQuery(async () => {
+  const { data, error, reload } = useQuery(async () => {
     const { data, error } = await getSupabase()
       .from("settings")
       .select("whatsapp_number,contact_email")
@@ -85,7 +94,13 @@ export default function SettingsPage() {
         title="Settings"
         subtitle="Shop-wide details used by the storefront. Prices are in Iraqi dinars (IQD)."
       />
-      {data ? <SettingsForm initial={data} /> : error ? <Notice>{error}</Notice> : <Spinner />}
+      {data ? (
+        <SettingsForm initial={data} />
+      ) : error ? (
+        <ErrorWithRetry error={error} onRetry={reload} />
+      ) : (
+        <Spinner />
+      )}
     </>
   );
 }
