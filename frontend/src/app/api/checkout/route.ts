@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verifyUser } from "@/lib/supabase/verify-user";
 import { normalizeIraqiMobile } from "@/lib/phone";
 import { cancelFibPayment, createFibPayment, FibPayError } from "@/lib/fib";
+import { notifyNewOrder } from "@/lib/telegram";
+import { rateLimit } from "@/lib/rate-limit";
+import { isGovernorate } from "@/lib/governorates";
 import { locales, type Locale } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
@@ -44,6 +47,9 @@ function pickName(row: { name_en: string; name_ar: string; name_ckb: string }, l
 }
 
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "checkout", 10, 60_000);
+  if (limited) return limited;
+
   let body: CheckoutBody;
   try {
     body = await request.json();
@@ -61,6 +67,9 @@ export async function POST(request: Request) {
   const rawItems = Array.isArray(body.items) ? body.items : [];
 
   if (!fullName || !city || !address) {
+    return NextResponse.json({ error: "missing_fields" }, { status: 400 });
+  }
+  if (!isGovernorate(city)) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
   if (!phone) {
@@ -184,8 +193,9 @@ export async function POST(request: Request) {
         redirectUrl: `${siteUrl()}/${locale}/account/orders/${orderId}`,
       });
     } catch (err) {
-      const message = err instanceof FibPayError ? err.message : "FIB payment creation failed";
-      return NextResponse.json({ error: "fib_error", message }, { status: 502 });
+      // Third-party error text stays in the server log, not the response.
+      console.error("[checkout] FIB create failed:", err instanceof FibPayError ? err.message : err);
+      return NextResponse.json({ error: "fib_error" }, { status: 502 });
     }
 
     orderRow.payment_status = "pending";
@@ -209,7 +219,7 @@ export async function POST(request: Request) {
       .insert(orderItems.map((i) => ({ ...i, order_id: orderId })));
     if (itemsError) {
       await cancelFibPayment(payment.paymentId).catch(() => {});
-      await admin.from("orders").delete().eq("id", orderId);
+      await rollbackOrder(admin, orderId);
       return itemsErrorResponse(admin, itemsError);
     }
 
@@ -239,10 +249,11 @@ export async function POST(request: Request) {
     .from("order_items")
     .insert(orderItems.map((i) => ({ ...i, order_id: orderId })));
   if (itemsError) {
-    await admin.from("orders").delete().eq("id", orderId);
+    await rollbackOrder(admin, orderId);
     return itemsErrorResponse(admin, itemsError);
   }
 
+  after(() => notifyNewOrder(orderId));
   return NextResponse.json({ orderId });
 }
 
@@ -270,6 +281,20 @@ async function findReplay(
     return NextResponse.json({ error: "order_conflict" }, { status: 409 });
   }
   return NextResponse.json({ orderId, replayed: true });
+}
+
+/**
+ * Undo a half-created order (its `orders` row exists but the items insert
+ * failed). Deleting the order cascades to any items and, via the 0007
+ * trigger, gives their stock back. Retries once and logs loudly if it still
+ * fails, since an itemless order would otherwise sit in the dashboard.
+ */
+async function rollbackOrder(admin: ReturnType<typeof getSupabaseAdmin>, orderId: string) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const { error } = await admin.from("orders").delete().eq("id", orderId);
+    if (!error) return;
+    console.error(`[checkout] rollback of order ${orderId} failed (attempt ${attempt + 1}):`, error.message);
+  }
 }
 
 /**

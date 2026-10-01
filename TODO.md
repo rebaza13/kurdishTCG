@@ -251,3 +251,13 @@ Supabase keys) — were previously missing/incomplete on this checkout._
 - [?] Returns/Shipping page copy (delivery timeframe, return window in days, which party pays return
   shipping) is a reasonable draft, not the owner's actual policy — the real numbers were never
   provided. Review and edit before this reads as a real policy to customers.
+
+## 11. Hardening + performance pass (2026-10-01)
+- [x] Stock decrement + idempotency were already in code (migration 0007 triggers; client `orderId` is the order PK) — **0007 must be applied in Supabase**; 0004 is not needed
+- [x] City is now a governorate dropdown (19 incl. Halabja), validated server-side; English name stored on the order
+- [x] Telegram new-order alerts (`frontend/src/lib/telegram.ts`): cash orders on placement, FIB orders once paid. No-op until `TELEGRAM_BOT_TOKEN` + `TELEGRAM_CHAT_ID` are set (see file header for setup)
+- [x] FIB retry race fixed (create new → compare-and-swap on `fib_payment_id` → cancel old; loser cancels its own payment, 409 `retry_in_progress`)
+- [x] Order-insert rollback now retried + logged; FIB error text no longer sent to customers; in-memory rate limits on checkout / FIB webhook / status / retry
+- [x] `fetchAllProducts()` cached (`unstable_cache` 60s + React `cache()`); Header is now a server component with a small search island
+- [ ] Account pages still client-fetched: auth is localStorage-based, so server-rendering needs a move to cookie sessions (`@supabase/ssr`) first
+- [ ] Atomic order insert via a `place_order()` RPC (needs a SQL migration)

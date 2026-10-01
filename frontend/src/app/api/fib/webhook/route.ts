@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { rateLimit } from "@/lib/rate-limit";
 import { syncFibPaymentStatus } from "@/lib/fib-sync";
 
 export const dynamic = "force-dynamic";
@@ -14,6 +15,9 @@ export const dynamic = "force-dynamic";
  * is. That's what actually gets written to the DB.
  */
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "fib-webhook", 60, 60_000);
+  if (limited) return limited;
+
   let body: { paymentId?: string };
   try {
     body = await request.json();

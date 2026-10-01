@@ -12,6 +12,7 @@ import { cartSubtotal, useCartStore } from "@/lib/cart-store";
 import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { normalizeIraqiMobile } from "@/lib/phone";
+import { GOVERNORATES } from "@/lib/governorates";
 import type { Locale } from "@/i18n/routing";
 
 function Field({
@@ -265,7 +266,25 @@ export default function CheckoutPage() {
 
         <section className="flex flex-col gap-4">
           <h2 className="text-lg">{t("shipping")}</h2>
-          <Field name="city" label={t("city")} required maxLength={80} autoComplete="address-level2" />
+          <label className="flex flex-col gap-1.5 text-sm">
+            <span className="text-xs text-[var(--color-text-muted)]">{t("city")}</span>
+            <select
+              name="city"
+              required
+              defaultValue=""
+              autoComplete="address-level1"
+              className="w-full border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2.5 text-base md:text-sm outline-none rounded-[var(--radius-xs)] transition-colors focus-visible:border-[var(--color-accent)] rtl:text-right"
+            >
+              <option value="" disabled>
+                {t("selectCity")}
+              </option>
+              {GOVERNORATES.map((g) => (
+                <option key={g.en} value={g.en}>
+                  {g[locale]}
+                </option>
+              ))}
+            </select>
+          </label>
           <Field
             name="address"
             label={t("address")}

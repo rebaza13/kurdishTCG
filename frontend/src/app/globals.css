@@ -1109,19 +1109,23 @@ h1, h2, h3, h4, h5, h6 {
 .kt-card__media { position: absolute; inset: 0; z-index: -3; overflow: hidden; }
 .kt-card__img { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1), filter 0.3s ease; }
 .kt-card[data-kind="single"] .kt-card__img { object-fit: cover; transform: scale(1.025); }
+/* Sealed: image plate on top, solid info panel below — no overlay/fade. */
 .kt-card[data-kind="sealed"] .kt-card__media {
-  background:
-    radial-gradient(115% 75% at 50% 30%,
-      color-mix(in oklab, var(--card-accent) 5%, #fdfbf7) 0%,
-      color-mix(in oklab, var(--card-accent) 18%, #efe9df) 52%,
-      color-mix(in oklab, var(--card-accent) 60%, #2c2621) 100%);
+  position: relative;
+  inset: auto;
+  z-index: 0;
+  flex: 1 1 0;
+  min-height: 0;
+  background: #f3efe8;
 }
+.kt-card[data-kind="sealed"] .kt-card__body { background: var(--ink); }
+.kt-card[data-kind="sealed"] .kt-card__scrim { display: none; }
 .kt-card[data-kind="sealed"] .kt-card__img {
   object-fit: contain;
-  padding: 7% 8% 37%;
+  padding: 14% 8% 6%;
   mix-blend-mode: multiply;
 }
-:root[data-theme="dark"] .kt-card[data-kind="sealed"] .kt-card__media { filter: brightness(0.9) saturate(1.05); }
+:root[data-theme="dark"] .kt-card[data-kind="sealed"] .kt-card__media { filter: brightness(0.9); }
 .kt-card[data-soldout] .kt-card__img { filter: grayscale(0.85); opacity: 0.75; }
 
 .kt-card__scrim {
@@ -1140,10 +1144,9 @@ h1, h2, h3, h4, h5, h6 {
 .kt-card[data-kind="sealed"] .kt-card__scrim {
   background:
     linear-gradient(to top,
-      rgb(11 10 9 / 0.96) 0%,
-      rgb(11 10 9 / 0.88) 26%,
-      color-mix(in srgb, var(--card-accent) 30%, rgb(11 10 9 / 0.5)) 40%,
-      transparent 58%);
+      rgb(11 10 9 / 0.95) 0%,
+      rgb(11 10 9 / 0.92) 28%,
+      transparent 42%);
 }
 
 .kt-card__glare,

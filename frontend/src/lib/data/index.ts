@@ -1,3 +1,5 @@
+import { cache } from "react";
+import { unstable_cache } from "next/cache";
 import type {
   Franchise,
   FranchiseSlug,
@@ -114,13 +116,26 @@ const RARITY_RANK: Record<string, number> = {
   secret: 6,
 };
 
-async function fetchAllProducts(): Promise<ProductRow[]> {
-  const supabase = getSupabaseClient();
-  // Every product type is listed — sealed product and single cards alike.
-  const { data, error } = await supabase.from("products").select("*");
-  if (error) throw error;
-  return (data ?? []) as ProductRow[];
-}
+/**
+ * One table scan serves every caller: `unstable_cache` shares it across
+ * requests (60s — checkout re-validates stock server-side, so a slightly stale
+ * count on a listing is harmless), React `cache()` dedupes repeat calls
+ * within a single render (product page = product + franchise + related).
+ * Tagged "products" so `revalidateTag("products")` can flush it.
+ */
+const loadAllProducts = unstable_cache(
+  async (): Promise<ProductRow[]> => {
+    const supabase = getSupabaseClient();
+    // Every product type is listed — sealed product and single cards alike.
+    const { data, error } = await supabase.from("products").select("*");
+    if (error) throw error;
+    return (data ?? []) as ProductRow[];
+  },
+  ["products:all"],
+  { revalidate: 60, tags: ["products"] }
+);
+
+const fetchAllProducts = cache(loadAllProducts);
 
 function aggregateFranchise(rows: ProductRow[]) {
   const sets = new Set(rows.map((p) => p.set_name));

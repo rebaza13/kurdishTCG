@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verifyUser } from "@/lib/supabase/verify-user";
+import { rateLimit } from "@/lib/rate-limit";
 import { syncFibPaymentStatus } from "@/lib/fib-sync";
 
 export const dynamic = "force-dynamic";
@@ -16,6 +17,10 @@ export async function GET(
   request: Request,
   ctx: RouteContext<"/api/fib/status/[paymentId]">
 ) {
+  // Dialog polls every 5s (12/min); allow headroom for a couple of tabs.
+  const limited = rateLimit(request, "fib-status", 60, 60_000);
+  if (limited) return limited;
+
   const { paymentId } = await ctx.params;
 
   const user = await verifyUser(request);

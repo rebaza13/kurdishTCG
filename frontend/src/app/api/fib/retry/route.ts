@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { verifyUser } from "@/lib/supabase/verify-user";
 import { cancelFibPayment, createFibPayment, FibPayError } from "@/lib/fib";
+import { rateLimit } from "@/lib/rate-limit";
 import { locales, type Locale } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
@@ -28,6 +29,9 @@ const REVIVABLE_DECLINE_REASONS = new Set(["PAYMENT_EXPIRATION", "SERVER_FAILURE
  * server-validated snapshot from when the order was placed).
  */
 export async function POST(request: Request) {
+  const limited = rateLimit(request, "fib-retry", 10, 60_000);
+  if (limited) return limited;
+
   const user = await verifyUser(request);
   if (!user) {
     return NextResponse.json({ error: "auth_required" }, { status: 401 });
@@ -66,10 +70,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "not_retryable" }, { status: 409 });
   }
 
-  if (order.fib_payment_id) {
-    await cancelFibPayment(order.fib_payment_id).catch(() => {});
-  }
-
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   let payment;
   try {
@@ -80,11 +80,14 @@ export async function POST(request: Request) {
       redirectUrl: `${siteUrl}/${locale}/account/orders/${order.id}`,
     });
   } catch (err) {
-    const message = err instanceof FibPayError ? err.message : "FIB payment creation failed";
-    return NextResponse.json({ error: "fib_error", message }, { status: 502 });
+    console.error("[fib/retry] create failed:", err instanceof FibPayError ? err.message : err);
+    return NextResponse.json({ error: "fib_error" }, { status: 502 });
   }
 
-  const { error: updateError } = await admin
+  // Compare-and-swap on the payment we saw: of two concurrent retries only
+  // one still matches, the other's fresh payment is cancelled below instead
+  // of being left live-but-unlinked at FIB.
+  const swap = admin
     .from("orders")
     .update({
       payment_status: "pending",
@@ -96,8 +99,20 @@ export async function POST(request: Request) {
       ...(revive ? { status: "requested" } : {}),
     })
     .eq("id", order.id);
-  if (updateError) {
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  const { data: swapped, error: updateError } = await (order.fib_payment_id
+    ? swap.eq("fib_payment_id", order.fib_payment_id)
+    : swap.is("fib_payment_id", null)
+  ).select("id");
+  if (updateError || !swapped?.length) {
+    await cancelFibPayment(payment.paymentId).catch(() => {});
+    return updateError
+      ? NextResponse.json({ error: "server_error" }, { status: 500 })
+      : NextResponse.json({ error: "retry_in_progress" }, { status: 409 });
+  }
+
+  // Now that the order points at the new payment, retire the stale one.
+  if (order.fib_payment_id) {
+    await cancelFibPayment(order.fib_payment_id).catch(() => {});
   }
 
   return NextResponse.json({
