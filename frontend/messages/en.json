@@ -184,8 +184,8 @@
     "fibError": "FIB payment couldn't be started — please try again in a moment.",
     "signInRequired": "Sign in to pay with FIB.",
     "signInToPayTitle": "Sign in to pay with FIB",
-    "signInToPayBody": "We link online payments to your account so you can track their status.",    "fibComingSoon": "Coming soon",
-
+    "signInToPayBody": "We link online payments to your account so you can track their status.",
+    "fibComingSoon": "Coming soon",
     "signInToOrderTitle": "Sign in to place your order",
     "signInToOrderBody": "We tie every order to your account, so you can see it again, follow its status and get updates. It takes one tap with Google.",
     "continueWithGoogle": "Continue with Google",
@@ -349,7 +349,8 @@
     "newsletterPlaceholder": "you@email.com",
     "newsletterCta": "Subscribe",
     "rights": "All rights reserved.",
-    "location": "Erbil · Kurdistan"
+    "location": "Erbil · Kurdistan",
+    "privacy": "Privacy"
   },
   "states": {
     "emptyFranchisesTitle": "No franchises yet",
@@ -369,5 +370,14 @@
     "notFoundTitle": "Page not found",
     "notFoundBody": "The page you are looking for does not exist or has moved.",
     "loading": "Loading…"
+  },
+  "privacyPage": {
+    "kicker": "Privacy",
+    "title": "Privacy policy",
+    "p1": "We collect only what we need to deliver your order: your name, phone number, delivery address and notes, and the email address from your Google or email sign-in.",
+    "p2": "We use this to confirm, deliver and track your orders and to contact you about them. Orders are paid in cash on delivery, so we never see or store card details.",
+    "p3": "Your data is stored with our database provider (Supabase), product images are served from Cloudflare, and new-order alerts reach our team through Telegram. We don't sell your data or use it for advertising.",
+    "p4": "You can ask us to correct or delete your data at any time through the contact page. Orders already delivered may be kept for accounting.",
+    "note": "Last updated October 2026."
   }
 }

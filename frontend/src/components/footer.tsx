@@ -47,6 +47,7 @@ export function Footer() {
           <Link href="/shipping">{t("shippingInfo")}</Link>
           <Link href="/returns">{t("returns")}</Link>
           <Link href="/faq">{t("faq")}</Link>
+          <Link href="/privacy">{t("privacy")}</Link>
         </div>
       </div>
 
