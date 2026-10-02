@@ -6,6 +6,7 @@ import { cancelFibPayment, createFibPayment, FibPayError } from "@/lib/fib";
 import { notifyNewOrder } from "@/lib/telegram";
 import { rateLimit } from "@/lib/rate-limit";
 import { isGovernorate } from "@/lib/governorates";
+import { FIB_ENABLED } from "@/lib/features";
 import { locales, type Locale } from "@/i18n/routing";
 
 export const dynamic = "force-dynamic";
@@ -66,6 +67,10 @@ export async function POST(request: Request) {
   const paymentMethod = body.paymentMethod === "fib" ? "fib" : "cash";
   const rawItems = Array.isArray(body.items) ? body.items : [];
 
+  if (paymentMethod === "fib" && !FIB_ENABLED) {
+    return NextResponse.json({ error: "fib_unavailable" }, { status: 403 });
+  }
+
   if (!fullName || !city || !address) {
     return NextResponse.json({ error: "missing_fields" }, { status: 400 });
   }
@@ -110,7 +115,9 @@ export async function POST(request: Request) {
   const items = [...quantityByProductId].map(([productId, quantity]) => ({ productId, quantity }));
 
   const user = await verifyUser(request);
-  if (paymentMethod === "fib" && !user) {
+  // Every order belongs to an account (customers track it from /account), so
+  // there is no guest checkout — for cash and FIB alike.
+  if (!user) {
     return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
 

@@ -1116,16 +1116,14 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 0;
   flex: 1 1 0;
   min-height: 0;
-  background: #f3efe8;
+  background: #ffffff;
 }
 .kt-card[data-kind="sealed"] .kt-card__body { background: var(--ink); }
 .kt-card[data-kind="sealed"] .kt-card__scrim { display: none; }
 .kt-card[data-kind="sealed"] .kt-card__img {
   object-fit: contain;
   padding: 14% 8% 6%;
-  mix-blend-mode: multiply;
 }
-:root[data-theme="dark"] .kt-card[data-kind="sealed"] .kt-card__media { filter: brightness(0.9); }
 .kt-card[data-soldout] .kt-card__img { filter: grayscale(0.85); opacity: 0.75; }
 
 .kt-card__scrim {
@@ -1461,16 +1459,11 @@ h1, h2, h3, h4, h5, h6 {
   [dir="rtl"] .kt-ftile:hover .kt-ftile__go { transform: translateX(-3px); }
 }
 
-/* Product page media — sealed shots are contained on the same lit plate. */
-.product-media[data-fit="contain"] {
-  background:
-    radial-gradient(110% 75% at 50% 40%,
-      color-mix(in oklab, var(--card-accent, var(--color-accent)) 4%, #fdfbf7) 0%,
-      color-mix(in oklab, var(--card-accent, var(--color-accent)) 16%, #efe9df) 60%,
-      color-mix(in oklab, var(--card-accent, var(--color-accent)) 40%, #b9b0a3) 100%);
-}
-.product-media[data-fit="contain"] img { object-fit: contain; padding: 8%; mix-blend-mode: multiply; }
-:root[data-theme="dark"] .product-media[data-fit="contain"] { filter: brightness(0.92); }
+/* Product page media — sealed shots are contained on a plain white plate.
+   No accent tint, no blend mode or filter: the image keeps its true colours,
+   and white-background photos still sit seamlessly on the white. */
+.product-media[data-fit="contain"] { background: #ffffff; }
+.product-media[data-fit="contain"] img { object-fit: contain; padding: 6%; }
 
 /* Section heading stack + sub copy; chip row → grid spacing. */
 .kt-section__heading { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 46rem; }
@@ -1482,4 +1475,70 @@ h1, h2, h3, h4, h5, h6 {
   /* Narrow cards: when a stock tag is shown, the franchise chip shrinks to its swatch. */
   .kt-card__chip:has(+ .kt-card__tag) { padding: 7px; }
   .kt-card__chip:has(+ .kt-card__tag) > :not(.kt-card__swatch) { display: none; }
+}
+
+/* Empty states, loading skeletons, error pages. */
+.kt-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  padding: 56px 20px;
+  text-align: center;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+.kt-empty[data-compact] { padding: 32px 16px; }
+.kt-empty__icon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+  background: var(--color-chip);
+}
+.kt-empty__title { font-size: 1.25rem; font-family: var(--font-heading, inherit); }
+.kt-empty__body { max-width: 46ch; font-size: 0.875rem; color: var(--color-text-muted); }
+.kt-empty__actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 8px; }
+
+.kt-skel {
+  position: relative;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--color-chip);
+}
+.kt-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.35), transparent);
+  animation: kt-shimmer 1.4s ease-in-out infinite;
+}
+[dir="rtl"] .kt-skel::after { animation-direction: reverse; }
+.kt-skel-line { height: 12px; border-radius: 6px; }
+.kt-skel-card { display: flex; flex-direction: column; gap: 10px; }
+.kt-skel-card__img { aspect-ratio: 3 / 4; border-radius: var(--radius-lg); }
+@keyframes kt-shimmer { to { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .kt-skel::after { animation: none; } }
+
+/* Bundle products: "+N more" tag on cards, "Also included" strip on the product page. */
+.kt-card__top .kt-card__tag[data-tone="bundle"] { background: #fff; color: var(--color-text); margin-inline-start: 0; }
+.kt-card__tags { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; margin-inline-start: auto; }
+.kt-card__tags .kt-card__tag { margin-inline-start: 0; }
+
+.kt-bundle { display: flex; flex-direction: column; gap: 12px; padding: 18px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.kt-bundle__title { font-size: 0.95rem; }
+.kt-bundle__hint { font-size: 0.8rem; color: var(--color-text-muted); }
+.kt-bundle__grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 12px; }
+.kt-bundle__item { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.kt-bundle__img { position: relative; aspect-ratio: 5 / 7; overflow: hidden; border-radius: 8px; background: #fff; border: 1px solid var(--color-border); }
+.kt-bundle__img img { object-fit: contain; }
+.kt-bundle__ph { display: grid; place-items: center; aspect-ratio: 5 / 7; border-radius: 8px; background: var(--color-chip); color: var(--color-text-muted); font-size: 1.25rem; }
+.kt-bundle__name { font-size: 0.75rem; line-height: 1.25; overflow-wrap: anywhere; }
+@media (max-width: 639px) {
+  .kt-card__chip:has(+ .kt-card__tags) { padding: 7px; }
+  .kt-card__chip:has(+ .kt-card__tags) > :not(.kt-card__swatch) { display: none; }
 }

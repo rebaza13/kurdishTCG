@@ -40,6 +40,7 @@ interface OrderDetail {
   }[];
 }
 
+const PROGRESS_STEPS = ["requested", "confirmed", "shipped", "delivered"] as const;
 const RETRYABLE = new Set(["pending", "declined"]);
 /** Mirrors /api/fib/retry: shop-cancelled orders can't be paid again. */
 const REVIVABLE_DECLINE_REASONS = new Set(["PAYMENT_EXPIRATION", "SERVER_FAILURE"]);
@@ -59,6 +60,8 @@ export default function OrderDetailPage() {
   const [retrying, setRetrying] = useState(false);
   const [retryError, setRetryError] = useState(false);
   const [fibPayment, setFibPayment] = useState<FibPaymentInfo | null>(null);
+  const [cancelStep, setCancelStep] = useState<"idle" | "confirm" | "busy">("idle");
+  const [cancelFailed, setCancelFailed] = useState(false);
 
   const load = useCallback(async () => {
     const supabase = getSupabaseClient();
@@ -132,6 +135,27 @@ export default function OrderDetailPage() {
     }
   }
 
+  async function handleCancel() {
+    if (!order) return;
+    setCancelStep("busy");
+    setCancelFailed(false);
+    try {
+      const token = await getAccessToken();
+      const res = await fetch("/api/orders/cancel", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.id }),
+      });
+      if (!res.ok) throw new Error("cancel failed");
+      await load();
+      setCancelStep("idle");
+    } catch {
+      setCancelFailed(true);
+      setCancelStep("idle");
+      await load(); // the shop may have confirmed it meanwhile — show the real status
+    }
+  }
+
   const back = (
     <Link
       href="/account"
@@ -198,6 +222,47 @@ export default function OrderDetailPage() {
           {statusT(order.status)}
         </span>
       </div>
+
+      {order.status === "cancelled" ? (
+        <p className="rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] px-5 py-4 text-sm text-[var(--color-text-muted)]">
+          {t("cancelledNote")}
+        </p>
+      ) : (
+        <ol
+          className="flex items-start rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] px-4 py-5"
+          aria-label={t("progressTitle")}
+        >
+          {PROGRESS_STEPS.map((step, i) => {
+            const reached = i <= PROGRESS_STEPS.indexOf(order.status as (typeof PROGRESS_STEPS)[number]);
+            const current = step === order.status;
+            return (
+              <li key={step} className="relative flex flex-1 flex-col items-center gap-2 text-center">
+                {i > 0 && (
+                  <span
+                    aria-hidden
+                    className={`absolute top-3 end-1/2 h-0.5 w-full ${reached ? "bg-[var(--color-accent)]" : "bg-[var(--color-border)]"}`}
+                  />
+                )}
+                <span
+                  aria-current={current ? "step" : undefined}
+                  className={`relative z-10 flex size-6 items-center justify-center rounded-full border-2 text-[11px] font-semibold ${
+                    reached
+                      ? "border-[var(--color-accent)] bg-[var(--color-accent)] text-[var(--color-accent-ink)]"
+                      : "border-[var(--color-border)] bg-[var(--color-surface)] text-[var(--color-text-muted)]"
+                  } ${current ? "ring-4 ring-[color-mix(in_srgb,var(--color-accent)_25%,transparent)]" : ""}`}
+                >
+                  {reached ? "✓" : i + 1}
+                </span>
+                <span
+                  className={`text-[11px] leading-tight sm:text-xs ${current ? "font-semibold text-[var(--color-text)]" : "text-[var(--color-text-muted)]"}`}
+                >
+                  {statusT(step)}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      )}
 
       <div className="flex flex-col divide-y-[length:var(--border-width)] divide-[var(--color-border)] border-y-[length:var(--border-width)] border-[var(--color-border)]">
         {order.order_items.map((item) => (
@@ -292,6 +357,33 @@ export default function OrderDetailPage() {
             </Button>
           )}
         </div>
+      )}
+
+      {order.status === "requested" ? (
+        <div className="flex flex-col gap-3 rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)] p-5">
+          {cancelFailed && <p className="text-xs text-[var(--color-accent)]">{t("cancelError")}</p>}
+          {cancelStep === "idle" ? (
+            <Button variant="outline" className="self-start" onClick={() => setCancelStep("confirm")}>
+              {t("cancelOrder")}
+            </Button>
+          ) : (
+            <div className="flex flex-wrap items-center gap-3" role="alertdialog" aria-label={t("cancelPrompt")}>
+              <span className="text-sm">{t("cancelPrompt")}</span>
+              <Button variant="primary" onClick={handleCancel} disabled={cancelStep === "busy"}>
+                {cancelStep === "busy" ? <Loader2 className="size-4 animate-spin" /> : null}
+                {t("cancelYes")}
+              </Button>
+              <Button variant="outline" onClick={() => setCancelStep("idle")} disabled={cancelStep === "busy"}>
+                {t("cancelKeep")}
+              </Button>
+            </div>
+          )}
+        </div>
+      ) : (
+        order.status !== "cancelled" &&
+        order.status !== "delivered" && (
+          <p className="text-xs text-[var(--color-text-muted)]">{t("cancelLateHelp")}</p>
+        )
       )}
 
       {fibPayment && (

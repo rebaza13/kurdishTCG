@@ -129,6 +129,9 @@
     "inStock": "متوفر",
     "outOfStock": "غير متوفر",
     "onlyLeft": "تبقّى {count} فقط",
+    "alsoIncluded": "يتضمّن أيضًا",
+    "bundleHint": "يأتي معه {count} إضافية في نفس الطلب — بسعر واحد.",
+    "bundleTag": "+{count} إضافية",
     "description": "التفاصيل",
     "related": "قد يعجبك أيضًا",
     "quantity": "الكمية"
@@ -181,7 +184,10 @@
     "fibError": "تعذّر بدء الدفع عبر FIB — يرجى المحاولة مرة أخرى بعد قليل.",
     "signInRequired": "سجّل الدخول للدفع عبر FIB.",
     "signInToPayTitle": "سجّل الدخول للدفع عبر FIB",
-    "signInToPayBody": "نربط الدفعات الإلكترونية بحسابك لتتمكن من متابعة حالتها.",
+    "signInToPayBody": "نربط الدفعات الإلكترونية بحسابك لتتمكن من متابعة حالتها.",    "fibComingSoon": "قريبًا",
+
+    "signInToOrderTitle": "سجّل الدخول لإتمام طلبك",
+    "signInToOrderBody": "نربط كل طلب بحسابك لتتمكن من رؤيته مجددًا ومتابعة حالته. يستغرق الأمر نقرة واحدة عبر Google.",
     "continueWithGoogle": "المتابعة باستخدام Google",
     "googleNotConfigured": "تسجيل الدخول عبر Google غير مُفعّل بعد — جرّب البريد الإلكتروني.",
     "useEmailInstead": "تفضّل البريد الإلكتروني؟ سجّل الدخول هنا",
@@ -256,6 +262,14 @@
     "createAccountCta": "إنشاء حساب",
     "passwordHint": "6 أحرف على الأقل.",
     "signInToView": "سجّل الدخول لعرض هذا الطلب.",
+    "cancelOrder": "إلغاء الطلب",
+    "cancelPrompt": "هل تريد إلغاء هذا الطلب؟",
+    "cancelYes": "نعم، ألغِه",
+    "cancelKeep": "إبقاء الطلب",
+    "cancelError": "تعذّر إلغاء هذا الطلب. ربما تم تأكيده بالفعل — يرجى التواصل معنا.",
+    "cancelLateHelp": "تريد التعديل أو الإلغاء؟ تواصل معنا — الطلب قيد المعالجة بالفعل.",
+    "cancelledNote": "تم إلغاء هذا الطلب.",
+    "progressTitle": "تقدّم الطلب",
     "errors": {
       "invalidCredentials": "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
       "emailNotConfirmed": "أكّد بريدك الإلكتروني أولًا — ابحث عن الرابط في صندوق الوارد.",
@@ -336,5 +350,24 @@
     "newsletterCta": "اشترك",
     "rights": "جميع الحقوق محفوظة.",
     "location": "أربيل · كردستان"
+  },
+  "states": {
+    "emptyFranchisesTitle": "لا توجد فئات بعد",
+    "emptyFranchisesBody": "نحن نجهّز الرفوف. ستظهر الفئات الجديدة هنا قريبًا.",
+    "emptyProductsTitle": "لا توجد منتجات بعد",
+    "emptyProductsBody": "بضاعة جديدة في الطريق — عد قريبًا.",
+    "emptySearchTitle": "لم يتم العثور على شيء",
+    "emptySearchBody": "جرّب كلمة أخرى، أو تصفّح حسب الفئة.",
+    "emptyFilterTitle": "لا توجد منتجات مطابقة لهذه الفلاتر",
+    "clearFilters": "مسح الفلاتر",
+    "browseFranchises": "استعرض الفئات",
+    "browseAll": "تصفّح كل المنتجات",
+    "errorTitle": "حدث خطأ ما",
+    "errorBody": "تعذّر تحميل هذه الصفحة. تحقق من اتصالك وحاول مرة أخرى.",
+    "retry": "حاول مرة أخرى",
+    "goHome": "العودة إلى الرئيسية",
+    "notFoundTitle": "الصفحة غير موجودة",
+    "notFoundBody": "الصفحة التي تبحث عنها غير موجودة أو تم نقلها.",
+    "loading": "جارٍ التحميل…"
   }
 }

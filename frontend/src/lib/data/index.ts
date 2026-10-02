@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { unstable_cache } from "next/cache";
 import type {
+  BundleItem,
   Franchise,
   FranchiseSlug,
   Product,
@@ -59,8 +60,20 @@ type ProductRow = {
   image: string;
   images: string[] | null;
   stock: number;
+  bundle_items: unknown;
   created_at: string;
 };
+
+/** bundle_items is jsonb — never trust its shape; keep only well-formed entries. */
+function parseBundleItems(raw: unknown): BundleItem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((entry): BundleItem[] => {
+    if (!entry || typeof entry !== "object") return [];
+    const { name, image } = entry as { name?: unknown; image?: unknown };
+    if (typeof name !== "string" || !name.trim()) return [];
+    return [{ name: name.trim(), image: typeof image === "string" && image ? image : null }];
+  });
+}
 
 function pick(row: Record<string, unknown>, field: string, locale: Locale): string {
   const key = `${field}_${locale}`;
@@ -102,6 +115,7 @@ function mapProductRow(row: ProductRow, locale: Locale): Product {
     images: row.images ?? [],
     description: pick(row, "description", locale),
     stock: row.stock,
+    bundleItems: parseBundleItems(row.bundle_items),
     createdAt: row.created_at,
   };
 }

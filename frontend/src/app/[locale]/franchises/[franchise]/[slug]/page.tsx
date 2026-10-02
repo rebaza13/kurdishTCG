@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -165,6 +166,33 @@ export default async function ProductDetailPage({
           </div>
 
           <ProductPurchase product={product} />
+
+          {product.bundleItems && product.bundleItems.length > 0 && (
+            <section className="kt-bundle" aria-labelledby="bundle-title">
+              <div className="flex flex-col gap-1">
+                <h2 id="bundle-title" className="kt-bundle__title font-heading font-[var(--font-heading-weight)]">
+                  {t("alsoIncluded")} · {product.bundleItems.length}
+                </h2>
+                <p className="kt-bundle__hint">{t("bundleHint", { count: product.bundleItems.length })}</p>
+              </div>
+              <ul className="kt-bundle__grid">
+                {product.bundleItems.map((item, i) => (
+                  <li key={`${item.name}-${i}`} className="kt-bundle__item">
+                    {item.image ? (
+                      <div className="kt-bundle__img">
+                        <Image src={item.image} alt={item.name} fill sizes="120px" />
+                      </div>
+                    ) : (
+                      <div className="kt-bundle__ph" aria-hidden>
+                        +
+                      </div>
+                    )}
+                    <span className="kt-bundle__name">{item.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <div>
             <h2 className="text-xs uppercase tracking-[0.12em] text-[var(--color-text-muted)] font-heading font-[var(--font-heading-weight)] mb-2">

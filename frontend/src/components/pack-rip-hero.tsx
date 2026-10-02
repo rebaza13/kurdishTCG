@@ -222,7 +222,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
               </div>
             ))}
 
-            <button type="button" className="kt-pack-center" onClick={rip} aria-label={t("ripAria")}>
+            <button type="button" className="kt-pack-center" onClick={rip} disabled={cards.length === 0} aria-label={t("ripAria")}>
               <div className="kt-pack-center__inner" style={{ animation: centerAnim }}>
                 <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 480px) 42vw, 270px" className="object-contain" priority />
                 <span className="kt-pack-center__sheen" aria-hidden />
@@ -260,7 +260,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
 
         <div className="kt-stage__foot">
           <span className="kt-stage__hint">{t("ripKicker")}</span>
-          <button type="button" className="kt-rip-btn" onClick={open ? reseal : rip}>
+          <button type="button" className="kt-rip-btn" onClick={open ? reseal : rip} disabled={cards.length === 0 && !open}>
             <span className="kt-rip-btn__dot" aria-hidden />
             <span>{open ? t("ripBtnReseal") : t("ripBtnRip")}</span>
           </button>

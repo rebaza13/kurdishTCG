@@ -57,6 +57,12 @@ export interface Franchise {
   fromPrice: number;
 }
 
+/** An extra item that comes with a bundle product ("this card + 4 more"). */
+export interface BundleItem {
+  name: string;
+  image: string | null;
+}
+
 /** A product resolved to one locale. */
 export interface Product {
   id: string;
@@ -74,6 +80,8 @@ export interface Product {
   images: string[];
   description: string;
   stock: number;
+  /** Display-only "also included" list; empty for ordinary products. */
+  bundleItems?: BundleItem[];
   createdAt?: string;
 }
 

@@ -7,7 +7,7 @@ import { ArrowLeft, MessageCircle, Phone, RefreshCw } from "lucide-react";
 import type { OrderStatus, PaymentStatus } from "@tcg/types";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { ORDERS_CHANGED_EVENT, useQuery } from "@/lib/use-query";
-import { NEXT_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
+import { NEXT_STATUSES, ORDER_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
 import { cancelFibPayment, refundFibPayment } from "@/lib/fib-admin";
 import {
   Button,
@@ -165,7 +165,13 @@ export default function OrderDetailPage() {
     );
   }
 
-  const next = NEXT_STATUSES[order.status] ?? [];
+  // The usual next step comes first (and is highlighted); every other status is
+  // still reachable so a mis-click — e.g. "delivered" too early — can be undone.
+  const flow = NEXT_STATUSES[order.status] ?? [];
+  const next = [
+    ...flow,
+    ...ORDER_STATUSES.filter((s) => s !== order.status && !flow.includes(s)),
+  ];
   const paidOnline = order.payment_method === "fib" && order.payment_status === "paid";
 
   return (
@@ -269,12 +275,16 @@ export default function OrderDetailPage() {
                   ) : (
                     <Button
                       key={s}
-                      variant={s === next[0] ? "primary" : "secondary"}
+                      variant={s === flow[0] ? "primary" : "secondary"}
                       loading={saving === s}
                       disabled={saving !== null}
                       onClick={() => changeStatus(s)}
                     >
-                      {s === "requested" ? "Reopen" : `Mark ${STATUS_LABEL[s].toLowerCase()}`}
+                      {s === "requested"
+                        ? order.status === "cancelled"
+                          ? "Reopen"
+                          : "Back to new request"
+                        : `Mark ${STATUS_LABEL[s].toLowerCase()}`}
                     </Button>
                   )
                 )}
@@ -288,7 +298,8 @@ export default function OrderDetailPage() {
               </p>
             )}
             <p className="mt-3 text-xs text-muted">
-              Stock is not changed automatically — adjust it on the product.
+              Stock is reserved when an order is placed and returned automatically if you cancel it
+              (and taken again if you reopen it).
             </p>
           </Card>
 

@@ -23,7 +23,7 @@ export async function notifyNewOrder(orderId: string): Promise<void> {
     const admin = getSupabaseAdmin();
     const { data: order } = await admin
       .from("orders")
-      .select("id, full_name, phone, city, address, notes, total, payment_method, payment_status")
+      .select("id, full_name, total, payment_method, payment_status")
       .eq("id", orderId)
       .maybeSingle();
     if (!order) return;
@@ -38,9 +38,9 @@ export async function notifyNewOrder(orderId: string): Promise<void> {
       `🛒 <b>New order #${orderId.slice(0, 8).toUpperCase()}</b>`,
       paid ? "💳 Paid with FIB" : "💵 Cash on delivery",
       "",
-      `👤 ${esc(order.full_name)} — ${esc(order.phone)}`,
-      `📍 ${esc(order.city)}, ${esc(order.address)}`,
-      ...(order.notes ? [`📝 ${esc(order.notes)}`] : []),
+      // Deliberately no phone, address or notes: Telegram bot chats aren't
+      // end-to-end encrypted, so the full details stay behind the dashboard login.
+      `👤 ${esc(order.full_name)}`,
       "",
       ...(items ?? []).map((i) => `• ${i.quantity} × ${esc(i.product_name)}`),
       "",
@@ -62,5 +62,36 @@ export async function notifyNewOrder(orderId: string): Promise<void> {
     if (!res.ok) console.error("[telegram] sendMessage failed:", res.status, await res.text());
   } catch (err) {
     console.error("[telegram] notify failed:", err);
+  }
+}
+
+/** Tells the shop owner a customer cancelled their own order. Same rules: never throws. */
+export async function notifyOrderCancelled(orderId: string): Promise<void> {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+
+  try {
+    const admin = getSupabaseAdmin();
+    const { data: order } = await admin
+      .from("orders")
+      .select("full_name, total")
+      .eq("id", orderId)
+      .maybeSingle();
+    const dashboard = process.env.NEXT_PUBLIC_DASHBOARD_URL ?? "http://localhost:3001";
+    const text = [
+      `❌ <b>Order #${orderId.slice(0, 8).toUpperCase()} cancelled by the customer</b>`,
+      ...(order ? [`👤 ${esc(order.full_name)} — ${iqd(Number(order.total))}`] : []),
+      `${dashboard}/orders/${orderId}`,
+    ].join("\n");
+    const res = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true }),
+      signal: AbortSignal.timeout(8_000),
+    });
+    if (!res.ok) console.error("[telegram] cancel notify failed:", res.status, await res.text());
+  } catch (err) {
+    console.error("[telegram] cancel notify failed:", err);
   }
 }

@@ -3,11 +3,12 @@
 import { useRef, useState } from "react";
 import Image from "next/image";
 import { ImagePlus, Trash2 } from "lucide-react";
-import { PRODUCT_IMAGES_BUCKET, errorMessage, getSupabase } from "@/lib/supabase";
+import { errorMessage, getSupabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button, Input, Notice } from "@/components/ui";
 
-const MAX_BYTES = 8 * 1024 * 1024;
+// Vercel caps function request bodies at 4.5 MB.
+const MAX_BYTES = 4 * 1024 * 1024;
 
 /**
  * A loose regex match (e.g. `/^https?:\/\//`) also matches the transient
@@ -36,30 +37,98 @@ function isRenderableImageSrc(src: string): boolean {
 export function isAllowedProductImageHost(src: string): boolean {
   if (!src) return false;
   if (src.startsWith("/")) return true;
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return true; // can't validate without it — don't block save
+  const allowed = [process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_R2_PUBLIC_URL]
+    .filter((u): u is string => !!u)
+    .map((u) => new URL(u).hostname);
+  if (!allowed.length) return true; // can't validate without it — don't block save
   try {
-    return new URL(src).hostname === new URL(supabaseUrl).hostname;
+    return allowed.includes(new URL(src).hostname);
   } catch {
     return false;
   }
 }
 
-/** Upload one file to the public product-images bucket and return its URL. */
-export async function uploadImage(file: File, folder: string): Promise<string> {
-  if (!file.type.startsWith("image/")) throw new Error("Please choose an image file.");
-  if (file.size > MAX_BYTES) throw new Error("Image is larger than 8 MB.");
+const MAX_INPUT_BYTES = 25 * 1024 * 1024;
+const MAX_EDGE = 1600; // px, longest side — plenty for a product card or gallery
+const WEBP_QUALITY = 0.85;
 
-  const ext = (file.name.split(".").pop() ?? "jpg").toLowerCase().replace(/[^a-z0-9]/g, "");
-  const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext || "jpg"}`;
+/**
+ * Shrink and convert to WebP in the browser before uploading: a multi-MB phone
+ * photo becomes a few hundred KB with no visible loss, which keeps R2 storage
+ * and storefront bandwidth small and stays under the 4.5 MB request limit.
+ * Falls back to the original if the browser can't decode/encode it, or if the
+ * result isn't actually smaller. GIF/SVG are left alone (animation / vector).
+ */
+async function optimizeImage(file: File): Promise<File> {
+  if (file.type === "image/gif" || file.type === "image/svg+xml") return file;
+  try {
+    const bitmap = await createImageBitmap(file);
+    const scale = Math.min(1, MAX_EDGE / Math.max(bitmap.width, bitmap.height));
+    const w = Math.max(1, Math.round(bitmap.width * scale));
+    const h = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return file;
+    ctx.drawImage(bitmap, 0, 0, w, h);
+    bitmap.close();
+    const blob = await new Promise<Blob | null>((resolve) =>
+      canvas.toBlob(resolve, "image/webp", WEBP_QUALITY)
+    );
+    // Safari < 17 can't encode WebP and silently returns a PNG — ignore that.
+    if (!blob || blob.type !== "image/webp" || blob.size >= file.size) return file;
+    const name = file.name.replace(/\.[^.]+$/, "") || "image";
+    return new File([blob], `${name}.webp`, { type: "image/webp" });
+  } catch {
+    return file;
+  }
+}
 
-  const supabase = getSupabase();
-  const { error } = await supabase.storage
-    .from(PRODUCT_IMAGES_BUCKET)
-    .upload(path, file, { contentType: file.type, cacheControl: "31536000" });
-  if (error) throw error;
+const UPLOAD_ERRORS: Record<string, string> = {
+  forbidden: "The storefront refused this admin session — sign out and back in.",
+  bad_type: "Use a JPG, PNG, WebP or AVIF image.",
+  too_large: "Image is larger than 4 MB.",
+  bad_folder: "Unknown upload folder.",
+};
 
-  return supabase.storage.from(PRODUCT_IMAGES_BUCKET).getPublicUrl(path).data.publicUrl;
+/**
+ * Upload one file to Cloudflare R2 and return its public URL. The R2 keys live
+ * only in the storefront app, so this is a cross-origin call to its
+ * /api/upload, authenticated with this admin's Supabase session.
+ */
+export async function uploadImage(original: File, folder: string): Promise<string> {
+  if (!original.type.startsWith("image/")) throw new Error("Please choose an image file.");
+  if (original.size > MAX_INPUT_BYTES) throw new Error("Image is larger than 25 MB.");
+
+  const file = await optimizeImage(original);
+  if (file.size > MAX_BYTES) throw new Error("Image is still larger than 4 MB after compression.");
+
+  const base = process.env.NEXT_PUBLIC_FRONTEND_URL ?? "http://localhost:3000";
+  const {
+    data: { session },
+  } = await getSupabase().auth.getSession();
+  if (!session) throw new Error("Not signed in.");
+
+  const form = new FormData();
+  form.append("file", file);
+  form.append("folder", folder);
+
+  let res: Response;
+  try {
+    res = await fetch(`${base}/api/upload`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      body: form,
+    });
+  } catch {
+    throw new Error(`Couldn't reach the storefront at ${base} to upload the image.`);
+  }
+  const body = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
+  if (!res.ok || !body.url) {
+    throw new Error((body.error && UPLOAD_ERRORS[body.error]) ?? `Upload failed (${res.status}).`);
+  }
+  return body.url;
 }
 
 /** Small remote-image preview; `unoptimized` because admins paste arbitrary URLs. */

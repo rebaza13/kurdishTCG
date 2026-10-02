@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ProductCard } from "@/components/product-card";
 import { SearchForm } from "@/components/search-form";
+import { EmptyState } from "@/components/empty-state";
 import { getFranchises, getProducts, parseProductKind } from "@/lib/data";
 import type { ProductKind } from "@tcg/types";
 import type { Locale } from "@/i18n/routing";
@@ -18,8 +19,9 @@ export default async function SearchPage({
   const { q, type } = await searchParams;
   const kind = parseProductKind(type);
 
-  const [t, nav, result, franchises] = await Promise.all([
+  const [t, states, nav, result, franchises] = await Promise.all([
     getTranslations("listing"),
+    getTranslations("states"),
     getTranslations("nav"),
     getProducts(undefined, { query: q, kind, pageSize: 60 }, locale),
     getFranchises(locale),
@@ -64,7 +66,21 @@ export default async function SearchPage({
         </nav>
       </div>
       {result.items.length === 0 ? (
-        <p className="text-sm text-[var(--color-text-muted)]">{t("noResults")}</p>
+        // Empty shop vs. a query / type filter that matched nothing.
+        counts.singles + counts.sealed === 0 && !q ? (
+          <EmptyState
+            title={states("emptyProductsTitle")}
+            body={states("emptyProductsBody")}
+            action={{ href: "/franchises", label: states("browseFranchises") }}
+          />
+        ) : (
+          <EmptyState
+            title={states("emptySearchTitle")}
+            body={states("emptySearchBody")}
+            action={{ href: "/search", label: states("browseAll") }}
+            secondary={{ href: "/franchises", label: states("browseFranchises") }}
+          />
+        )
       ) : (
         <div className="kt-card-grid">
           {result.items.map((p) => (

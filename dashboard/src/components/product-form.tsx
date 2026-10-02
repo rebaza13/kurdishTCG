@@ -38,6 +38,8 @@ interface FormState {
   grade: string;
   image: string;
   images: string[];
+  /** "Also included" extras for bundles; blank rows are dropped on save. */
+  bundle_items: { name: string; image: string }[];
   stock: string;
 }
 
@@ -58,8 +60,11 @@ const EMPTY: FormState = {
   grade: "",
   image: "",
   images: [],
+  bundle_items: [],
   stock: "0",
 };
+
+const MAX_BUNDLE_ITEMS = 24;
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
@@ -82,6 +87,7 @@ interface ProductRow {
   grade: string | null;
   image: string;
   images: string[] | null;
+  bundle_items: { name: string; image: string | null }[] | null;
   stock: number;
 }
 
@@ -101,6 +107,7 @@ function toForm(row: ProductRow): FormState {
     grade: row.grade ?? "",
     image: row.image,
     images: row.images ?? [],
+    bundle_items: (row.bundle_items ?? []).map((i) => ({ name: i.name, image: i.image ?? "" })),
     stock: String(row.stock),
   };
 }
@@ -131,6 +138,15 @@ function toPayload(
   if (f.images.some((img) => !isAllowedProductImageHost(img)))
     return { error: "One of the extra images isn't uploaded here — pasted links from other sites aren't shown on the storefront." };
 
+  // Blank rows (no name) are dropped; a named row's image is optional.
+  const bundle_items = f.bundle_items
+    .map((i) => ({ name: i.name.trim(), image: i.image.trim() }))
+    .filter((i) => i.name);
+  if (bundle_items.length > MAX_BUNDLE_ITEMS)
+    return { error: `An "also included" list can hold up to ${MAX_BUNDLE_ITEMS} items.` };
+  if (bundle_items.some((i) => i.image && !isAllowedProductImageHost(i.image)))
+    return { error: "One of the \"also included\" images isn't uploaded here — pasted links from other sites aren't shown on the storefront." };
+
   return {
     row: {
       id: f.id.trim(),
@@ -152,6 +168,7 @@ function toPayload(
       grade: f.grade.trim() || null,
       image: f.image.trim(),
       images: f.images,
+      bundle_items: bundle_items.map((i) => ({ name: i.name, image: i.image || null })),
       stock,
     },
   };
@@ -310,7 +327,8 @@ function FormBody({
     }
   }
 
-  const folder = `products/${f.id || "new"}`;
+  // R2 prefix: single cards live under `cards/`, sealed products under `packs/`.
+  const folder = `${f.product_type === "single_card" ? "cards" : "packs"}/${f.slug || "new"}`;
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -460,6 +478,67 @@ function FormBody({
         <Field label="More images" group>
           <GalleryField value={f.images} onChange={(images) => patch({ images })} folder={folder} />
         </Field>
+      </Card>
+
+      <Card className="flex flex-col gap-4 p-4">
+        <div>
+          <h2 className="text-sm font-semibold">Also included (bundle)</h2>
+          <p className="mt-1 text-xs text-muted">
+            Selling this product together with extra cards? List them here and the customer sees
+            &ldquo;Also included&rdquo; on the product page and a &ldquo;+N more&rdquo; tag on the card.
+            It&apos;s still one product with one price and one stock count. Leave empty for a normal product.
+          </p>
+        </div>
+        {f.bundle_items.map((item, i) => (
+          <div key={i} className="flex flex-col gap-3 rounded-lg border border-line p-3">
+            <div className="flex items-end gap-2">
+              <div className="min-w-0 flex-1">
+                <Field label={`Item ${i + 1} name`}>
+                  <Input
+                    value={item.name}
+                    placeholder="e.g. Monkey D. Luffy (OP05-119)"
+                    maxLength={120}
+                    onChange={(e) =>
+                      patch({
+                        bundle_items: f.bundle_items.map((b, j) =>
+                          j === i ? { ...b, name: e.target.value } : b
+                        ),
+                      })
+                    }
+                  />
+                </Field>
+              </div>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => patch({ bundle_items: f.bundle_items.filter((_, j) => j !== i) })}
+              >
+                Remove
+              </Button>
+            </div>
+            <Field label="Image (optional)" group>
+              <ImageField
+                value={item.image}
+                onChange={(image) =>
+                  patch({
+                    bundle_items: f.bundle_items.map((b, j) => (j === i ? { ...b, image } : b)),
+                  })
+                }
+                folder={folder}
+              />
+            </Field>
+          </div>
+        ))}
+        {f.bundle_items.length < MAX_BUNDLE_ITEMS && (
+          <Button
+            type="button"
+            variant="secondary"
+            className="self-start"
+            onClick={() => patch({ bundle_items: [...f.bundle_items, { name: "", image: "" }] })}
+          >
+            + Add an included item
+          </Button>
+        )}
       </Card>
     </form>
   );

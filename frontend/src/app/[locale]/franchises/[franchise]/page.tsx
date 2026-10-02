@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { ProductCard } from "@/components/product-card";
+import { EmptyState } from "@/components/empty-state";
 import { FilterBar } from "@/components/filter-bar";
 import { Button } from "@/components/ui/button";
 import { getFranchise, getProducts, parseProductKind } from "@/lib/data";
@@ -78,9 +79,10 @@ export default async function FranchiseListingPage({
   const rarity = sp.rarity?.split(",").filter(Boolean) as Rarity[] | undefined;
   const kind = parseProductKind(sp.type);
 
-  const [franchiseData, t, franchiseT, result] = await Promise.all([
+  const [franchiseData, t, states, franchiseT, result] = await Promise.all([
     getFranchise(franchise, locale),
     getTranslations("listing"),
+    getTranslations("states"),
     getTranslations("franchises"),
     getProducts(
       franchise,
@@ -133,9 +135,19 @@ export default async function FranchiseListingPage({
           </p>
 
           {result.items.length === 0 ? (
-            <p className="text-sm text-[var(--color-text-muted)] py-10">
-              {franchiseData.cardCount === 0 ? t("noProductsYet") : t("noResults")}
-            </p>
+            franchiseData.cardCount === 0 ? (
+              <EmptyState
+                title={states("emptyProductsTitle")}
+                body={t("noProductsYet")}
+                action={{ href: "/franchises", label: states("browseFranchises") }}
+              />
+            ) : (
+              <EmptyState
+                compact
+                title={states("emptyFilterTitle")}
+                action={{ href: `/franchises/${franchise}`, label: states("clearFilters") }}
+              />
+            )
           ) : (
             <div className="kt-card-grid">
               {result.items.map((p) => (

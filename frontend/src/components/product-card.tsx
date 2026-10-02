@@ -45,6 +45,7 @@ export function ProductCard({
   const foil = single && product.rarity != null && FOIL_RARITIES.has(product.rarity);
   const soldOut = product.stock <= 0;
   const lowStock = !soldOut && product.stock <= 5;
+  const bundleCount = product.bundleItems?.length ?? 0;
   const accent = franchise?.accent ?? `var(--color-${product.franchise}, var(--color-accent))`;
 
   const meta = single
@@ -80,10 +81,19 @@ export function ProductCard({
         ) : (
           <span />
         )}
-        {(soldOut || lowStock) && (
-          <span className="kt-card__tag" data-tone={soldOut ? "muted" : "hot"}>
-            {soldOut ? t("outOfStock") : t("onlyLeft", { count: product.stock })}
-          </span>
+        {(soldOut || lowStock || bundleCount > 0) && (
+          <div className="kt-card__tags">
+            {bundleCount > 0 && (
+              <span className="kt-card__tag" data-tone="bundle">
+                {t("bundleTag", { count: bundleCount })}
+              </span>
+            )}
+            {(soldOut || lowStock) && (
+              <span className="kt-card__tag" data-tone={soldOut ? "muted" : "hot"}>
+                {soldOut ? t("outOfStock") : t("onlyLeft", { count: product.stock })}
+              </span>
+            )}
+          </div>
         )}
       </div>
 

@@ -10,6 +10,7 @@ import { PriceTag } from "@/components/price-tag";
 import { FibPaymentDialog, type FibPaymentInfo } from "@/components/fib-payment-dialog";
 import { cartSubtotal, useCartStore } from "@/lib/cart-store";
 import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
+import { FIB_ENABLED } from "@/lib/features";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { normalizeIraqiMobile } from "@/lib/phone";
 import { GOVERNORATES } from "@/lib/governorates";
@@ -123,7 +124,7 @@ export default function CheckoutPage() {
       if (phoneInput instanceof HTMLInputElement) phoneInput.focus();
       return;
     }
-    if (paymentMethod === "fib" && !user) {
+    if (!user) {
       setError(t("signInRequired"));
       return;
     }
@@ -242,6 +243,28 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 grid lg:grid-cols-[1fr_380px] gap-10">
+      {!user ? (
+        // Orders are tied to an account: sign in first (cart is kept across the Google redirect).
+        <div className="flex flex-col gap-6">
+          <h1 className="text-3xl">{t("title")}</h1>
+          {user === undefined ? (
+            <Loader2 className="size-5 animate-spin text-[var(--color-text-muted)]" aria-label={t("title")} />
+          ) : (
+            <div className="flex max-w-[460px] flex-col gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-lg)] px-6 py-6 bg-[var(--color-surface)]">
+              <h2 className="text-lg">{t("signInToOrderTitle")}</h2>
+              <p className="text-sm text-[var(--color-text-muted)]">{t("signInToOrderBody")}</p>
+              <Button type="button" variant="primary" size="lg" className="w-full justify-center" onClick={handleGoogle}>
+                <GoogleIcon />
+                {t("continueWithGoogle")}
+              </Button>
+              {googleError && <p className="text-xs text-[var(--color-accent)]">{googleError}</p>}
+              <Link href="/account" className="text-xs text-[var(--color-accent)] underline-offset-2 hover:underline">
+                {t("useEmailInstead")}
+              </Link>
+            </div>
+          )}
+        </div>
+      ) : (
       <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
         <h1 className="text-3xl">{t("title")}</h1>
 
@@ -323,37 +346,29 @@ export default function CheckoutPage() {
             </div>
           </label>
           <label
-            className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)] cursor-pointer has-[:checked]:border-[var(--color-accent)]"
+            className="flex items-center gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-3.5 bg-[var(--color-surface)] cursor-pointer has-[:checked]:border-[var(--color-accent)] has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60"
           >
             <input
               type="radio"
               name="paymentMethodChoice"
               checked={paymentMethod === "fib"}
               onChange={() => setPaymentMethod("fib")}
+              disabled={!FIB_ENABLED}
               className="size-4 accent-[var(--color-accent)]"
             />
             <div className="flex-1">
-              <p className="text-sm font-heading font-[var(--font-heading-weight)]">
+              <p className="flex items-center gap-2 text-sm font-heading font-[var(--font-heading-weight)]">
                 {t("bankTransfer")}
+                {!FIB_ENABLED && (
+                  <span className="rounded-full bg-[var(--color-chip)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-text-muted)]">
+                    {t("fibComingSoon")}
+                  </span>
+                )}
               </p>
               <p className="text-xs text-[var(--color-text-muted)]">{t("bankTransferNote")}</p>
             </div>
           </label>
 
-          {paymentMethod === "fib" && user === null && (
-            <div className="flex flex-col gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-md)] px-4 py-4 bg-[var(--color-surface)]">
-              <p className="text-sm">{t("signInToPayTitle")}</p>
-              <p className="text-xs text-[var(--color-text-muted)]">{t("signInToPayBody")}</p>
-              <Button type="button" variant="secondary" onClick={handleGoogle}>
-                <GoogleIcon />
-                {t("continueWithGoogle")}
-              </Button>
-              {googleError && <p className="text-xs text-[var(--color-accent)]">{googleError}</p>}
-              <Link href="/account" className="text-xs text-[var(--color-accent)] underline-offset-2 hover:underline">
-                {t("useEmailInstead")}
-              </Link>
-            </div>
-          )}
         </section>
 
         {error && (
@@ -370,12 +385,13 @@ export default function CheckoutPage() {
           type="submit"
           size="lg"
           className="w-full justify-center"
-          disabled={submitting || (paymentMethod === "fib" && !user)}
+          disabled={submitting || !user}
         >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
           {paymentMethod === "fib" ? t("payWithFib") : t("placeOrder")}
         </Button>
       </form>
+      )}
 
       <aside className="h-fit border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-6 flex flex-col gap-4 rounded-[var(--radius-lg)] lg:sticky lg:top-24 max-lg:-order-1">
         <h2 className="text-lg">{t("orderSummary")}</h2>

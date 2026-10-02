@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FranchiseTile } from "@/components/franchise-tile";
+import { EmptyState } from "@/components/empty-state";
 import { getFranchises } from "@/lib/data";
 import { localizedAlternates } from "@/lib/seo";
 import type { Locale } from "@/i18n/routing";
@@ -50,8 +51,9 @@ export default async function FranchisesPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const [t, franchises] = await Promise.all([
+  const [t, states, franchises] = await Promise.all([
     getTranslations("franchises"),
+    getTranslations("states"),
     getFranchises(locale),
   ]);
 
@@ -64,6 +66,13 @@ export default async function FranchisesPage({
         <h1 className="text-3xl md:text-5xl">{t("title")}</h1>
         <p className="text-sm text-[var(--color-text-muted)]">{t("subtitle")}</p>
       </div>
+      {franchises.length === 0 ? (
+        <EmptyState
+          title={states("emptyFranchisesTitle")}
+          body={states("emptyFranchisesBody")}
+          action={{ href: "/", label: states("goHome") }}
+        />
+      ) : (
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-4">
         {franchises.map((f) => (
           <FranchiseTile key={f.slug} franchise={f} />
@@ -75,6 +84,7 @@ export default async function FranchisesPage({
           </p>
         </div>
       </div>
+      )}
     </div>
   );
 }

@@ -129,6 +129,9 @@
     "inStock": "In stock",
     "outOfStock": "Out of stock",
     "onlyLeft": "Only {count} left",
+    "alsoIncluded": "Also included",
+    "bundleHint": "Comes with {count} more in the same order — one price.",
+    "bundleTag": "+{count} more",
     "description": "Details",
     "related": "You may also like",
     "quantity": "Quantity"
@@ -181,7 +184,10 @@
     "fibError": "FIB payment couldn't be started — please try again in a moment.",
     "signInRequired": "Sign in to pay with FIB.",
     "signInToPayTitle": "Sign in to pay with FIB",
-    "signInToPayBody": "We link online payments to your account so you can track their status.",
+    "signInToPayBody": "We link online payments to your account so you can track their status.",    "fibComingSoon": "Coming soon",
+
+    "signInToOrderTitle": "Sign in to place your order",
+    "signInToOrderBody": "We tie every order to your account, so you can see it again, follow its status and get updates. It takes one tap with Google.",
     "continueWithGoogle": "Continue with Google",
     "googleNotConfigured": "Google sign-in isn't set up yet — try email instead.",
     "useEmailInstead": "Prefer email? Sign in here",
@@ -256,6 +262,14 @@
     "createAccountCta": "Create account",
     "passwordHint": "At least 6 characters.",
     "signInToView": "Sign in to see this order.",
+    "cancelOrder": "Cancel order",
+    "cancelPrompt": "Cancel this order?",
+    "cancelYes": "Yes, cancel it",
+    "cancelKeep": "Keep order",
+    "cancelError": "We could not cancel this order. It may already have been confirmed — please contact us.",
+    "cancelLateHelp": "Need to change or cancel? Contact us — the order is already being handled.",
+    "cancelledNote": "This order was cancelled.",
+    "progressTitle": "Order progress",
     "errors": {
       "invalidCredentials": "Wrong email or password.",
       "emailNotConfirmed": "Confirm your email first — check your inbox for the link.",
@@ -336,5 +350,24 @@
     "newsletterCta": "Subscribe",
     "rights": "All rights reserved.",
     "location": "Erbil · Kurdistan"
+  },
+  "states": {
+    "emptyFranchisesTitle": "No franchises yet",
+    "emptyFranchisesBody": "We are setting up the shelves. New franchises will appear here soon.",
+    "emptyProductsTitle": "No products yet",
+    "emptyProductsBody": "Fresh stock is on its way — check back soon.",
+    "emptySearchTitle": "Nothing found",
+    "emptySearchBody": "Try a different word, or browse by franchise.",
+    "emptyFilterTitle": "No items match these filters",
+    "clearFilters": "Clear filters",
+    "browseFranchises": "Browse franchises",
+    "browseAll": "Browse everything",
+    "errorTitle": "Something went wrong",
+    "errorBody": "We could not load this page. Check your connection and try again.",
+    "retry": "Try again",
+    "goHome": "Back to home",
+    "notFoundTitle": "Page not found",
+    "notFoundBody": "The page you are looking for does not exist or has moved.",
+    "loading": "Loading…"
   }
 }
