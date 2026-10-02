@@ -440,6 +440,9 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 @media (min-width: 420px) { .kt-hero__title { font-size: clamp(64px, 7.4vw, 124px); } }
+/* Arabic script (ar/ckb): wider glyphs, tall marks — Latin line-height/tracking clips and unjoins them. */
+[dir="rtl"] .kt-hero__title { font-size: 44px; line-height: 1.3; letter-spacing: 0; }
+@media (min-width: 420px) { [dir="rtl"] .kt-hero__title { font-size: clamp(44px, 5vw, 84px); } }
 .kt-hero__title span { display: block; animation: kt-rise-title 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .kt-hero__title span:nth-child(2) { animation-delay: 0.05s; }
 .kt-hero__title-pull { animation-delay: 0.15s !important; display: flex !important; align-items: center; gap: 0.18em; }
