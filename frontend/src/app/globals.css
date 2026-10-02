@@ -291,6 +291,8 @@ h1, h2, h3, h4, h5, h6 {
 @keyframes kt-twinkle { 0%, 100% { opacity: 0.1; transform: rotate(45deg) scale(0.5); } 50% { opacity: 1; transform: rotate(45deg) scale(1); } }
 @keyframes kt-pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-accent) 55%, transparent); } 100% { box-shadow: 0 0 0 12px transparent; } }
 @keyframes kt-rise { from { opacity: 0; transform: translateY(28px); } }
+/* Headline is the LCP element: never start it fully transparent. */
+@keyframes kt-rise-title { from { opacity: 0.01; transform: translateY(28px); } }
 @keyframes kt-toast-in { from { opacity: 0; transform: translate(-50%, 24px) scale(0.96); } }
 @keyframes kt-glow {
   0%, 100% { box-shadow: 0 0 0 3px var(--color-accent), 0 10px 30px color-mix(in srgb, var(--color-accent) 45%, transparent); }
@@ -438,7 +440,7 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 @media (min-width: 420px) { .kt-hero__title { font-size: clamp(64px, 7.4vw, 124px); } }
-.kt-hero__title span { display: block; animation: kt-rise 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.kt-hero__title span { display: block; animation: kt-rise-title 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .kt-hero__title span:nth-child(2) { animation-delay: 0.05s; }
 .kt-hero__title-pull { animation-delay: 0.15s !important; display: flex !important; align-items: center; gap: 0.18em; }
 .kt-hero__title-accent { color: var(--color-accent); }

@@ -14,6 +14,8 @@ import { localizedAlternates } from "@/lib/seo";
 import type { FranchiseSlug } from "@tcg/types";
 import type { Locale } from "@/i18n/routing";
 
+export const revalidate = 300;
+
 export async function generateMetadata({
   params,
 }: {

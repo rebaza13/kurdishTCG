@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { NextIntlClientProvider, hasLocale } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
+import { getMessages, getTranslations, setRequestLocale } from "next-intl/server";
 import { notFound } from "next/navigation";
 import {
   bricolageGrotesque,
@@ -49,6 +49,11 @@ export default async function LocaleLayout({
 
   const dir = localeDirection[locale as Locale];
 
+  // Client components only: drop namespaces that are rendered purely on the server.
+  const messages = (await getMessages()) as Record<string, unknown>;
+  const SERVER_ONLY = ["meta", "sell", "aboutPage", "contactPage", "shippingPage", "returnsPage", "faqPage"];
+  const clientMessages = Object.fromEntries(Object.entries(messages).filter(([k]) => !SERVER_ONLY.includes(k)));
+
   return (
     <html
       lang={locale}
@@ -58,7 +63,7 @@ export default async function LocaleLayout({
     >
       <body className="font-body antialiased">
         <ThemeProvider>
-          <NextIntlClientProvider>
+          <NextIntlClientProvider messages={clientMessages}>
             {/* pb clears the floating <BottomNav /> (phone + tablet only) */}
             <div className="flex min-h-screen flex-col pb-[calc(6rem+env(safe-area-inset-bottom))] min-[760px]:pb-0">
               <Header />

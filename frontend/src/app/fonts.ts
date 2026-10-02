@@ -21,6 +21,7 @@ export const jetbrainsMono = JetBrains_Mono({
   weight: ["500", "700"],
   variable: "--font-jetbrains-mono",
   display: "swap",
+  preload: false,
 });
 
 // Arabic-script pairing used for ar/ckb (Sorani Kurdish) — Archivo, Space
@@ -28,14 +29,14 @@ export const jetbrainsMono = JetBrains_Mono({
 // --font-heading/--font-body to these in globals.css regardless of theme.
 export const notoKufiArabic = Noto_Kufi_Arabic({
   subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-noto-kufi",
   display: "swap",
+  preload: false,
 });
 
 export const notoSansArabic = Noto_Sans_Arabic({
   subsets: ["arabic"],
-  weight: ["400", "500", "600", "700"],
   variable: "--font-noto-sans-arabic",
   display: "swap",
+  preload: false,
 });

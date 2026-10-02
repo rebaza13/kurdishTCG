@@ -217,14 +217,14 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
                 }}
               >
                 <div className="kt-pack-side__float">
-                  <Image src={p.src} alt={p.alt} fill sizes="(max-width: 480px) 34vw, 230px" className="object-contain" />
+                  <Image src={p.src} alt={p.alt} fill sizes="(max-width: 480px) 34vw, 230px" className="object-contain" loading="eager" />
                 </div>
               </div>
             ))}
 
             <button type="button" className="kt-pack-center" onClick={rip} disabled={cards.length === 0} aria-label={t("ripAria")}>
               <div className="kt-pack-center__inner" style={{ animation: centerAnim }}>
-                <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 480px) 42vw, 270px" className="object-contain" priority />
+                <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 480px) 42vw, 270px" className="object-contain" fetchPriority="high" loading="eager" />
                 <span className="kt-pack-center__sheen" aria-hidden />
               </div>
             </button>

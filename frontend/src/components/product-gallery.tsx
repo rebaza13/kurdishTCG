@@ -42,7 +42,8 @@ export function ProductGallery({
           fill
           sizes="(max-width: 768px) 340px, 400px"
           className={fit === "contain" ? undefined : "object-cover"}
-          priority
+          fetchPriority="high"
+          loading="eager"
         />
         <div className="product-media__fade" aria-hidden />
       </div>
