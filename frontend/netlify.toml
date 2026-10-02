@@ -1,0 +1,9 @@
+# Netlify build config for the storefront (site base directory: frontend).
+[build]
+  command = "npm run build"
+  publish = ".next"
+
+# Turns the Next.js build into Netlify functions + edge handlers. Without it the
+# deploy publishes no server and every URL returns Netlify's 404.
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
