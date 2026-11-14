@@ -9,6 +9,8 @@ import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL, RARITIES, slugify } from "@/lib/format";
 import { GalleryField, ImageField, isAllowedProductImageHost } from "@/components/image-upload";
+import { ProductCardPreview } from "@/components/product-card-preview";
+import { refreshStorefront } from "@/lib/storefront";
 import { LocalizedField, type LangKey } from "@/components/localized-fields";
 import {
   Button,
@@ -181,7 +183,7 @@ export function ProductForm({ productId }: { productId?: string }) {
   const { data, error: loadError, reload } = useQuery(async () => {
     const supabase = getSupabase();
     const [franchises, product] = await Promise.all([
-      supabase.from("franchises").select("slug,name_en").order("sort_order"),
+      supabase.from("franchises").select("slug,name_en,accent").order("sort_order"),
       editing
         ? supabase.from("products").select("*").eq("id", productId).maybeSingle()
         : Promise.resolve({ data: null, error: null }),
@@ -189,7 +191,7 @@ export function ProductForm({ productId }: { productId?: string }) {
     if (franchises.error) throw franchises.error;
     if (product.error) throw product.error;
     return {
-      franchises: (franchises.data ?? []) as { slug: string; name_en: string }[],
+      franchises: (franchises.data ?? []) as { slug: string; name_en: string; accent: string }[],
       product: product.data as ProductRow | null,
     };
   }, [productId]);
@@ -241,7 +243,7 @@ function FormBody({
   editing,
   onDone,
 }: {
-  franchises: { slug: string; name_en: string }[];
+  franchises: { slug: string; name_en: string; accent: string }[];
   initial: FormState;
   editing: boolean;
   onDone: () => void;
@@ -291,10 +293,12 @@ function FormBody({
           .select("id");
         if (error) throw error;
         assertWritten(data, "The product");
+        await refreshStorefront();
         setSaved(true);
       } else {
         const { error } = await supabase.from("products").insert(result.row);
         if (error) throw error;
+        await refreshStorefront();
         onDone();
       }
     } catch (err) {
@@ -315,6 +319,7 @@ function FormBody({
         .select("id");
       if (error) throw error;
       assertWritten(data, "The deletion");
+      await refreshStorefront();
       onDone();
     } catch (err) {
       const message = errorMessage(err);
@@ -472,9 +477,39 @@ function FormBody({
       </Card>
 
       <Card className="flex flex-col gap-5 p-4">
-        <Field label="Main image" required group>
-          <ImageField value={f.image} onChange={(image) => patch({ image })} folder={folder} />
-        </Field>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+          <div className="min-w-0 flex-1">
+            <Field label="Main image" required group>
+              <ImageField
+                value={f.image}
+                onChange={(image) => patch({ image })}
+                folder={folder}
+                crop={
+                  f.product_type === "single_card"
+                    ? { aspect: 63 / 88, background: null, label: "Card shape (63 × 88), fills the whole card" }
+                    : { aspect: 1, background: "#ffffff", label: "Square on the white display plate" }
+                }
+              />
+
+            </Field>
+          </div>
+          <ProductCardPreview
+            image={f.image.trim()}
+            name={f.name.en}
+            set={f.set_name}
+            meta={
+              f.product_type === "single_card"
+                ? [f.rarity || PRODUCT_TYPE_LABEL[f.product_type], f.card_number && `#${f.card_number}`]
+                    .filter(Boolean)
+                    .join(" · ")
+                : PRODUCT_TYPE_LABEL[f.product_type]
+            }
+            price={f.price ? `${Number(f.price).toLocaleString("en-US")} IQD` : "— IQD"}
+            franchise={franchises.find((fr) => fr.slug === f.franchise_slug)?.name_en}
+            accent={franchises.find((fr) => fr.slug === f.franchise_slug)?.accent}
+            single={f.product_type === "single_card"}
+          />
+        </div>
         <Field label="More images" group>
           <GalleryField value={f.images} onChange={(images) => patch({ images })} folder={folder} />
         </Field>

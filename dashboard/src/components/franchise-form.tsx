@@ -8,6 +8,7 @@ import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
 import { useQuery } from "@/lib/use-query";
 import { slugify } from "@/lib/format";
 import { ImageField, isAllowedProductImageHost } from "@/components/image-upload";
+import { refreshStorefront } from "@/lib/storefront";
 import { LocalizedField, type LangKey } from "@/components/localized-fields";
 import {
   Button,
@@ -204,10 +205,12 @@ function FormBody({
           .select("slug");
         if (error) throw error;
         assertWritten(data, "The franchise");
+        await refreshStorefront();
         setSaved(true);
       } else {
         const { error } = await supabase.from("franchises").insert(row);
         if (error) throw error;
+        await refreshStorefront();
         router.push("/franchises");
       }
     } catch (err) {
@@ -228,6 +231,7 @@ function FormBody({
         .select("slug");
       if (error) throw error;
       assertWritten(data, "The deletion");
+      await refreshStorefront();
       router.push("/franchises");
     } catch (err) {
       setError(errorMessage(err));

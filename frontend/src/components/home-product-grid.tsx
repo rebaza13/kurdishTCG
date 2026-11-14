@@ -53,6 +53,9 @@ function flyToCart(button: HTMLElement) {
   };
 }
 
+/** Products shown per "page" of the homepage grid. */
+const PAGE_SIZE = 12;
+
 export function HomeProductGrid({ products, franchises }: { products: Product[]; franchises: Franchise[] }) {
   const t = useTranslations("product");
   const home = useTranslations("home");
@@ -60,6 +63,7 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
   const addItem = useCartStore((s) => s.addItem);
 
   const [filter, setFilter] = useState<string>("all");
+  const [shown, setShown] = useState(PAGE_SIZE);
   const [toast, setToast] = useState<string | null>(null);
 
   const byFranchise = useMemo(() => new Map(franchises.map((f) => [f.slug, f])), [franchises]);
@@ -68,7 +72,13 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
     () => franchises.filter((f) => products.some((p) => p.franchise === f.slug)),
     [franchises, products]
   );
-  const visible = filter === "all" ? products : products.filter((p) => p.franchise === filter);
+  const matching = filter === "all" ? products : products.filter((p) => p.franchise === filter);
+  const visible = matching.slice(0, shown);
+
+  function pickFilter(slug: string) {
+    setFilter(slug);
+    setShown(PAGE_SIZE);
+  }
 
   function handleAdd(e: React.MouseEvent<HTMLButtonElement>, product: Product) {
     e.preventDefault();
@@ -83,12 +93,12 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
     <>
       {chipFranchises.length > 1 && (
       <div className="kt-chip-row">
-        <button type="button" className="kt-filter-chip" data-active={filter === "all"} onClick={() => setFilter("all")}>
+        <button type="button" className="kt-filter-chip" data-active={filter === "all"} onClick={() => pickFilter("all")}>
           <span className="kt-filter-chip__swatch" style={{ background: "var(--color-accent)" }} aria-hidden />
           <span>{home("allFranchises")}</span>
         </button>
         {chipFranchises.map((f) => (
-          <button key={f.slug} type="button" className="kt-filter-chip" data-active={filter === f.slug} onClick={() => setFilter(f.slug)}>
+          <button key={f.slug} type="button" className="kt-filter-chip" data-active={filter === f.slug} onClick={() => pickFilter(f.slug)}>
             <span className="kt-filter-chip__swatch" style={{ background: f.accent }} aria-hidden />
             <span>{f.name}</span>
           </button>
@@ -122,6 +132,14 @@ export function HomeProductGrid({ products, franchises }: { products: Product[];
           <p style={{ gridColumn: "1 / -1", color: "var(--color-text-muted)", padding: "2rem 0" }}>{franchisesT("outOfStock")}</p>
         )}
       </div>
+
+      {matching.length > shown && (
+        <div className="kt-load-more">
+          <button type="button" className="kt-btn-outline" onClick={() => setShown((n) => n + PAGE_SIZE)}>
+            {home("loadMore")}
+          </button>
+        </div>
+      )}
 
       {toast && (
         <div className="kt-toast" role="status">

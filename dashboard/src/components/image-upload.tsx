@@ -2,7 +2,8 @@
 
 import { useRef, useState } from "react";
 import Image from "next/image";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { Crop, ImagePlus, Trash2 } from "lucide-react";
+import { ImageEditor, type CropSpec } from "@/components/image-editor";
 import { errorMessage, getSupabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { Button, Input, Notice } from "@/components/ui";
@@ -34,13 +35,20 @@ function isRenderableImageSrc(src: string): boolean {
  * whatever page renders that image. Uploads always land on the storage host,
  * so this only matters for a hand-pasted URL.
  */
+const R2_FALLBACK_URL = "https://pub-b7fec24279c14c088e36e18e21ddf97c.r2.dev";
+
 export function isAllowedProductImageHost(src: string): boolean {
   if (!src) return false;
   if (src.startsWith("/")) return true;
-  const allowed = [process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_R2_PUBLIC_URL]
+  // R2 host is hardcoded as a fallback (matches frontend/next.config.ts) so
+  // uploads aren't rejected when NEXT_PUBLIC_R2_PUBLIC_URL isn't set.
+  const allowed = [
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.NEXT_PUBLIC_R2_PUBLIC_URL,
+    R2_FALLBACK_URL,
+  ]
     .filter((u): u is string => !!u)
     .map((u) => new URL(u).hostname);
-  if (!allowed.length) return true; // can't validate without it — don't block save
   try {
     return allowed.includes(new URL(src).hostname);
   } catch {
@@ -179,17 +187,44 @@ function useUpload(folder: string, onUploaded: (url: string) => void) {
   return { inputRef, busy, error, onFiles };
 }
 
-/** One image: preview + upload button + editable URL. */
+/**
+ * One image: preview + upload button + editable URL. With `crop`, a picked
+ * file opens the position/zoom editor first, and "Adjust" re-edits the
+ * current image, so it lands in the storefront card exactly as framed.
+ */
 export function ImageField({
   value,
   onChange,
   folder,
+  crop,
 }: {
   value: string;
   onChange: (url: string) => void;
   folder: string;
+  crop?: CropSpec;
 }) {
-  const { inputRef, busy, error, onFiles } = useUpload(folder, onChange);
+  const [editing, setEditing] = useState<File | string | null>(null);
+  // Fresh picks upload first, then open the editor on the uploaded image;
+  // saving an edit uploads the framed result without reopening it.
+  const adjustAfterUpload = useRef(false);
+  const { inputRef, busy, error, onFiles } = useUpload(folder, (url) => {
+    onChange(url);
+    if (crop && adjustAfterUpload.current) setEditing(url);
+    adjustAfterUpload.current = false;
+  });
+
+  function pick(files: FileList | null) {
+    adjustAfterUpload.current = !!crop;
+    onFiles(files);
+  }
+
+  function uploadEdited(file: File) {
+    setEditing(null);
+    adjustAfterUpload.current = false;
+    const dt = new DataTransfer();
+    dt.items.add(file);
+    onFiles(dt.files);
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -208,19 +243,34 @@ export function ImageField({
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={(e) => onFiles(e.target.files)}
+              onChange={(e) => pick(e.target.files)}
             />
-            <Button
-              size="sm"
-              loading={busy}
-              onClick={() => inputRef.current?.click()}
-            >
-              <ImagePlus className="size-3.5" /> Upload image
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                loading={busy}
+                onClick={() => inputRef.current?.click()}
+              >
+                <ImagePlus className="size-3.5" /> Upload image
+              </Button>
+              {crop && isRenderableImageSrc(value) && (
+                <Button size="sm" disabled={busy} onClick={() => setEditing(value)}>
+                  <Crop className="size-3.5" /> Adjust
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
       {error && <Notice>{error}</Notice>}
+      {crop && editing && (
+        <ImageEditor
+          source={editing}
+          spec={crop}
+          onCancel={() => setEditing(null)}
+          onDone={uploadEdited}
+        />
+      )}
     </div>
   );
 }

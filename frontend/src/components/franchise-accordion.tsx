@@ -44,7 +44,9 @@ export function FranchiseAccordion({ franchises }: { franchises: Franchise[] }) 
                 src={f.image}
                 alt={f.name}
                 fill
-                sizes="(max-width: 1320px) 20vw, 260px"
+                // Any panel can expand to ~75% of the row, so size for the open state.
+                sizes="(max-width: 1320px) 75vw, 1000px"
+                quality={90}
                 className="object-cover"
                 style={{ transform: `scale(${on ? 1.02 : 1.14})` }}
               />
@@ -74,7 +76,7 @@ export function FranchiseAccordion({ franchises }: { franchises: Franchise[] }) 
       <div className="kt-franchise-rail">
         {franchises.map((f) => (
           <Link key={f.slug} href={`/franchises/${f.slug}`} className="kt-franchise-card">
-            <Image src={f.image} alt={f.name} fill sizes="76vw" className="object-cover" />
+            <Image src={f.image} alt={f.name} fill sizes="76vw" quality={90} className="object-cover" />
             <span className="kt-franchise-card__scrim" aria-hidden />
             <span className="kt-franchise-card__top" style={{ background: f.accent }} aria-hidden />
             <div className="kt-franchise-card__body">

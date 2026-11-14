@@ -24,6 +24,7 @@
     "label": "Language"
   },
   "home": {
+    "loadMore": "Load more",
     "heroKicker": "New drops weekly · Shipped from Erbil",
     "heroTitle": "Every pack could be the pull.",
     "heroLine1": "Every pack",
@@ -37,7 +38,7 @@
     "statFranchises": "franchises",
     "statCash": "payment on delivery",
     "statCashValue": "Cash",
-    "franchisesKicker": "01 — Shop by franchise",
+    "franchisesKicker": "03 — Shop by franchise",
     "franchisesTitle": "Six worlds, one shelf.",
     "featuredKicker": "02 — Featured",
     "featuredTitle": "This week's pulls",
@@ -62,8 +63,8 @@
     "newsletterEyebrow": "03 — One email a week",
     "stageRing": "PULL THE FOIL ✦ RIP IT OPEN ✦ SOURCED IN ERBIL ✦ PRICED IN DINARS ✦ SEALED & REAL ✦ ",
     "heroTitleSecondaryAll": "Sealed boxes, booster packs and chase singles from six worlds — priced in dinars, ripped by you.",
-    "sealedKicker": "02 — Sealed",
-    "singlesKicker": "03 — Singles",
+    "sealedKicker": "01 — Sealed",
+    "singlesKicker": "02 — Singles",
     "singlesTitle": "Singles worth chasing.",
     "singlesBody": "Hand-picked rares and foils, each shipped sleeved and in the condition listed.",
     "viewAllSingles": "Shop all singles",

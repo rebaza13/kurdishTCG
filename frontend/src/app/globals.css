@@ -704,7 +704,7 @@ h1, h2, h3, h4, h5, h6 {
   transition: opacity 0.5s 0.15s, transform 0.6s 0.15s cubic-bezier(0.2, 0.85, 0.2, 1);
 }
 .kt-franchise-panel__badge { padding: 6px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-.kt-franchise-panel__name { font-size: clamp(40px, 4vw, 58px); line-height: 0.95; font-weight: 800; letter-spacing: -0.045em; white-space: nowrap; }
+.kt-franchise-panel__name { font-size: clamp(40px, 4vw, 58px); line-height: 0.95; font-weight: 800; letter-spacing: -0.045em; max-width: 100%; text-wrap: balance; }
 .kt-franchise-panel__meta-row { display: flex; align-items: center; gap: 16px; width: 100%; justify-content: space-between; flex-wrap: wrap; }
 .kt-franchise-panel__meta { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
 .kt-franchise-panel__cta { height: 42px; padding: 0 18px; display: flex; align-items: center; gap: 8px; border-radius: var(--radius-full); background: #fff; color: #17140f; font-weight: 700; font-size: 14px; white-space: nowrap; }
@@ -1129,6 +1129,9 @@ h1, h2, h3, h4, h5, h6 {
   object-fit: contain;
   padding: 14% 8% 6%;
 }
+/* Homepage "This week's pulls": taller cards so the product image gets more height. */
+#pulls .kt-card[data-kind="sealed"] { aspect-ratio: 63 / 100; }
+#pulls .kt-card[data-kind="sealed"] .kt-card__img { padding: 10% 6% 4%; }
 .kt-card[data-soldout] .kt-card__img { filter: grayscale(0.85); opacity: 0.75; }
 
 .kt-card__scrim {
@@ -1474,6 +1477,7 @@ h1, h2, h3, h4, h5, h6 {
 .kt-section__heading { display: flex; flex-direction: column; gap: 12px; min-width: 0; max-width: 46rem; }
 .kt-section__sub { margin: 0; max-width: 52ch; font-size: 15px; line-height: 1.5; color: var(--color-text-muted); text-wrap: pretty; }
 .kt-chip-row + .kt-card-grid { margin-top: 18px; }
+.kt-load-more { display: flex; justify-content: center; margin-top: 28px; }
 @media (hover: none) { .kt-card:active { transform: scale(0.985); } }
 .kt-home { overflow-x: clip; }
 @media (max-width: 639px) {

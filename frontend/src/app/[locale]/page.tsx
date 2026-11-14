@@ -18,6 +18,9 @@ import type { Locale } from "@/i18n/routing";
 // Request-time API, so without this it would cache indefinitely).
 export const revalidate = 300;
 
+// Shown 12 at a time via "Load more"; past this, the "View all" link takes over.
+const HOME_PRODUCT_LIMIT = 48;
+
 export async function generateMetadata({
   params,
 }: {
@@ -73,8 +76,8 @@ async function HomeContent({ locale }: { locale: Locale }) {
     getTranslations("states"),
     getTranslations({ locale, namespace: "meta" }),
     getFranchises(locale),
-    getFeaturedProducts(8, locale, "sealed"),
-    getFeaturedProducts(8, locale, "singles"),
+    getFeaturedProducts(HOME_PRODUCT_LIMIT, locale, "sealed"),
+    getFeaturedProducts(HOME_PRODUCT_LIMIT, locale, "singles"),
   ]);
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -126,25 +129,6 @@ async function HomeContent({ locale }: { locale: Locale }) {
         </div>
       )}
 
-      <section id="franchises" className="kt-section">
-        <Reveal className="kt-section__head">
-          <div className="kt-section__heading">
-            <span className="kt-eyebrow">{t("franchisesKicker")}</span>
-            <h2 className="kt-section__title">{t("franchisesTitle")}</h2>
-          </div>
-          <Link href="/franchises" className="kt-section__link">
-            {t("viewAllFranchises")}
-          </Link>
-        </Reveal>
-        <Reveal>
-          {franchises.length > 0 ? (
-            <FranchiseAccordion franchises={franchises} />
-          ) : (
-            <EmptyState title={states("emptyFranchisesTitle")} body={states("emptyFranchisesBody")} />
-          )}
-        </Reveal>
-      </section>
-
       <section id="pulls" className="kt-section">
         <Reveal className="kt-section__head">
           <div className="kt-section__heading">
@@ -177,6 +161,25 @@ async function HomeContent({ locale }: { locale: Locale }) {
           <HomeProductGrid products={singles} franchises={franchises} />
         </section>
       )}
+
+      <section id="franchises" className="kt-section">
+        <Reveal className="kt-section__head">
+          <div className="kt-section__heading">
+            <span className="kt-eyebrow">{t("franchisesKicker")}</span>
+            <h2 className="kt-section__title">{t("franchisesTitle")}</h2>
+          </div>
+          <Link href="/franchises" className="kt-section__link">
+            {t("viewAllFranchises")}
+          </Link>
+        </Reveal>
+        <Reveal>
+          {franchises.length > 0 ? (
+            <FranchiseAccordion franchises={franchises} />
+          ) : (
+            <EmptyState title={states("emptyFranchisesTitle")} body={states("emptyFranchisesBody")} />
+          )}
+        </Reveal>
+      </section>
 
       <NewsletterBanner />
       </div>

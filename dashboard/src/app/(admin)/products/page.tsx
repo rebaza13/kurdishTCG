@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Plus, Search } from "lucide-react";
 import type { ProductType } from "@tcg/types";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
+import { refreshStorefront } from "@/lib/storefront";
 import { useQuery } from "@/lib/use-query";
 import { PRODUCT_TYPES, PRODUCT_TYPE_LABEL, money } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -82,6 +83,7 @@ function StockCell({ product, onSaved }: { product: ProductRow; onSaved: () => v
         .select("id");
       if (error) throw error;
       assertWritten(data, "The stock change");
+      void refreshStorefront();
       setDraft(null);
       setState("idle");
       setMessage(null);

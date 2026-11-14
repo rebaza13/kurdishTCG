@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
+import { refreshStorefront } from "@/lib/storefront";
 import { useQuery } from "@/lib/use-query";
 import { Button, Card, ErrorWithRetry, Field, Input, Notice, PageHeader, Spinner } from "@/components/ui";
 
@@ -41,6 +42,7 @@ function SettingsForm({ initial }: { initial: Settings }) {
         .select("id");
       if (error) throw error;
       assertWritten(data, "Settings");
+      void refreshStorefront();
       setSaved(true);
     } catch (err) {
       setError(errorMessage(err));
