@@ -1,9 +1,10 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, Loader2, RefreshCw } from "lucide-react";
+import { ArrowLeft, Loader2, Package, RefreshCw } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
@@ -37,8 +38,12 @@ interface OrderDetail {
     product_name: string;
     quantity: number;
     unit_price: number;
+    /** Joined live product (null if it was deleted since) — for the photo and link. */
+    products: { slug: string; franchise_slug: string; image: string | null } | null;
   }[];
 }
+
+const ORDER_SELECT = "*, order_items(*, products(slug, franchise_slug, image))";
 
 const PROGRESS_STEPS = ["requested", "confirmed", "shipped", "delivered"] as const;
 const RETRYABLE = new Set(["pending", "declined"]);
@@ -67,7 +72,7 @@ export default function OrderDetailPage() {
     const supabase = getSupabaseClient();
     const { data } = await supabase
       .from("orders")
-      .select("*, order_items(*)")
+      .select(ORDER_SELECT)
       .eq("id", id)
       .maybeSingle();
     setOrder((data as OrderDetail | null) ?? null);
@@ -80,7 +85,7 @@ export default function OrderDetailPage() {
     const supabase = getSupabaseClient();
     supabase
       .from("orders")
-      .select("*, order_items(*)")
+      .select(ORDER_SELECT)
       .eq("id", id)
       .maybeSingle()
       .then(({ data }) => {
@@ -265,17 +270,46 @@ export default function OrderDetailPage() {
       )}
 
       <div className="flex flex-col divide-y-[length:var(--border-width)] divide-[var(--color-border)] border-y-[length:var(--border-width)] border-[var(--color-border)]">
-        {order.order_items.map((item) => (
-          <div key={item.id} className="flex items-center justify-between py-3 text-sm gap-3">
-            <span className="min-w-0">
-              {item.product_name}{" "}
-              <span className="text-[var(--color-text-muted)]" dir="ltr">
-                × {item.quantity}
-              </span>
-            </span>
-            <PriceTag value={item.unit_price * item.quantity} className="shrink-0" />
-          </div>
-        ))}
+        {order.order_items.map((item) => {
+          const product = item.products;
+          const href = product ? `/franchises/${product.franchise_slug}/${product.slug}` : null;
+          const thumb = (
+            <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--color-neutral-200)]">
+              {product?.image ? (
+                <Image src={product.image} alt={item.product_name} fill sizes="64px" className="object-cover" />
+              ) : (
+                <Package className="absolute inset-0 m-auto size-6 text-[var(--color-text-muted)]" aria-hidden />
+              )}
+            </div>
+          );
+          return (
+            <div key={item.id} className="flex items-center gap-4 py-4 text-sm">
+              {href ? (
+                <Link href={href} tabIndex={-1} aria-hidden>
+                  {thumb}
+                </Link>
+              ) : (
+                thumb
+              )}
+              <div className="flex min-w-0 flex-1 flex-col gap-1">
+                {href ? (
+                  <Link
+                    href={href}
+                    className="font-heading font-[var(--font-heading-weight)] line-clamp-2 hover:text-[var(--color-accent)]"
+                  >
+                    {item.product_name}
+                  </Link>
+                ) : (
+                  <span className="font-heading font-[var(--font-heading-weight)] line-clamp-2">{item.product_name}</span>
+                )}
+                <span className="flex items-center gap-1.5 text-xs text-[var(--color-text-muted)]" dir="ltr">
+                  <PriceTag value={item.unit_price} /> × {item.quantity}
+                </span>
+              </div>
+              <PriceTag value={item.unit_price * item.quantity} className="shrink-0 self-start" />
+            </div>
+          );
+        })}
       </div>
 
       <div className="flex items-center justify-between">

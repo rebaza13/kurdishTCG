@@ -4,7 +4,7 @@ import Image from "next/image";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { Link } from "@/i18n/navigation";
-import type { Franchise } from "@tcg/types";
+import type { Franchise, Product } from "@tcg/types";
 
 // The three packs on the stage — same local art whichever franchises are
 // live, since this is a demo rip, not a real per-SKU unboxing.
@@ -41,13 +41,36 @@ type Phase = "idle" | "shaking" | "open";
 
 /** 2π·88 — the stage ring's text path radius in its 200×200 viewBox. */
 const RING_CIRCUMFERENCE = 552;
-type BurstCard = { franchise: Franchise; hit: boolean; rarityKey: string; transform: string; z: number; delay: number };
+type BurstCard = {
+  key: string;
+  href: string;
+  image: string;
+  accent: string;
+  hit: boolean;
+  rarityKey: string;
+  transform: string;
+  z: number;
+  delay: number;
+};
+/** What fills one burst slot: a real single card, or franchise art as a fallback. */
+type PullSource = { key: string; href: string; image: string; accent: string; name: string; rarity: string | null };
+
+const RARITY_RANK: Record<string, number> = { common: 0, uncommon: 1, rare: 2, holo: 3, ultra: 4, promo: 5, secret: 6 };
+
+function shuffle<T>(items: T[]): T[] {
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
 
 function prefersReducedMotion() {
   return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
+export function PackRipHero({ franchises, singles = [] }: { franchises: Franchise[]; singles?: Product[] }) {
   const t = useTranslations("home");
   const rarityT = useTranslations("rarity");
   const stageRef = useRef<HTMLDivElement>(null);
@@ -77,33 +100,64 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
   const cards = useMemo(() => franchises.slice(0, 6), [franchises]);
   const open = phase === "open";
 
+  // Real single cards from the shop when there are any (each links to its
+  // product page); otherwise fall back to the franchise art.
+  const pool = useMemo<PullSource[]>(() => {
+    const withArt = singles.filter((p) => p.image);
+    if (withArt.length > 0) {
+      const accentBySlug = new Map(franchises.map((f) => [f.slug, f.accent]));
+      return withArt.map((p) => ({
+        key: p.id,
+        href: `/franchises/${p.franchise}/${p.slug}`,
+        image: p.image,
+        accent: accentBySlug.get(p.franchise) ?? "var(--color-neutral-200)",
+        name: p.name,
+        rarity: p.rarity,
+      }));
+    }
+    return cards
+      .filter((f) => f.image)
+      .map((f) => ({ key: f.slug, href: `/franchises/${f.slug}`, image: f.image, accent: f.accent, name: f.name, rarity: null }));
+  }, [singles, franchises, cards]);
+
   const rip = useCallback(() => {
-    if (phase !== "idle" || cards.length === 0) return;
+    if (phase !== "idle" || pool.length === 0) return;
     setPhase("shaking");
     const run = () => {
       const stageW = stageRef.current?.offsetWidth ?? 600;
       const spread = Math.min(stageW * 0.19, 130);
-      const shuffled = [...cards].sort(() => Math.random() - 0.5);
-      const hitRarity = RARITY_HIT[Math.floor(Math.random() * RARITY_HIT.length)];
+      const shuffled = shuffle(pool);
+      const picks = BURST_POS.map((_, i) => shuffled[i % shuffled.length]);
+      // The rarest pull takes the glowing centre slot.
+      let best = 0;
+      picks.forEach((p, i) => {
+        if ((RARITY_RANK[p.rarity ?? ""] ?? -1) > (RARITY_RANK[picks[best].rarity ?? ""] ?? -1)) best = i;
+      });
+      [picks[2], picks[best]] = [picks[best], picks[2]];
+      const hitCard = picks[2];
+      const hitRarity = hitCard.rarity ?? RARITY_HIT[Math.floor(Math.random() * RARITY_HIT.length)];
       const next: BurstCard[] = BURST_POS.map(([x, y, r], i) => {
-        const f = shuffled[i % shuffled.length];
+        const src = picks[i];
         const hit = i === 2;
         return {
-          franchise: f,
+          key: `${src.key}-${i}`,
+          href: src.href,
+          image: src.image,
+          accent: src.accent,
           hit,
-          rarityKey: hit ? hitRarity : RARITY_COMMON[i > 2 ? i - 1 : i],
+          rarityKey: hit ? hitRarity : (src.rarity ?? RARITY_COMMON[i > 2 ? i - 1 : i]),
           z: hit ? 7 : 6 - Math.abs(x),
           transform: `translate(-50%,-50%) translate(${x * spread}px,${y}px) rotate(${r}deg) scale(${hit ? 1.14 : 1})`,
           delay: i * 0.07,
         };
       });
       setBurst(next);
-      setPulled({ rarityKey: hitRarity, name: shuffled[2].name });
+      setPulled({ rarityKey: hitRarity, name: hitCard.name });
       setPhase("open");
     };
     if (prefersReducedMotion()) run();
     else shakeTimer.current = setTimeout(run, 650);
-  }, [phase, cards]);
+  }, [phase, pool]);
 
   const reseal = useCallback(() => {
     clearTimeout(shakeTimer.current);
@@ -222,7 +276,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
               </div>
             ))}
 
-            <button type="button" className="kt-pack-center" onClick={rip} disabled={cards.length === 0} aria-label={t("ripAria")}>
+            <button type="button" className="kt-pack-center" onClick={rip} disabled={pool.length === 0} aria-label={t("ripAria")}>
               <div className="kt-pack-center__inner" style={{ animation: centerAnim }}>
                 <Image src={HERO_PACK.src} alt={HERO_PACK.alt} fill sizes="(max-width: 480px) 42vw, 270px" className="object-contain" fetchPriority="high" loading="eager" />
                 <span className="kt-pack-center__sheen" aria-hidden />
@@ -232,16 +286,16 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
             {open && (
               <>
                 <span className="kt-burst-flash" aria-hidden />
-                {burst.map((c, i) => (
+                {burst.map((c) => (
                   <Link
-                    key={`${c.franchise.slug}-${i}`}
-                    href={`/franchises/${c.franchise.slug}`}
+                    key={c.key}
+                    href={c.href}
                     className="kt-burst-card"
                     data-hit={c.hit || undefined}
                     style={{ transform: c.transform, zIndex: c.z, animationDelay: `${c.delay}s` }}
                   >
-                    <div className="kt-burst-card__art" style={{ background: c.franchise.accent }}>
-                      <Image src={c.franchise.image} alt="" fill sizes="140px" className="object-cover" />
+                    <div className="kt-burst-card__art" style={{ background: c.accent }}>
+                      <Image src={c.image} alt="" fill sizes="160px" className="object-cover" />
                       <span className="kt-burst-card__sheen" aria-hidden />
                       <span className="kt-burst-card__rarity">{rarityT(c.rarityKey)}</span>
                     </div>
@@ -260,7 +314,7 @@ export function PackRipHero({ franchises }: { franchises: Franchise[] }) {
 
         <div className="kt-stage__foot">
           <span className="kt-stage__hint">{t("ripKicker")}</span>
-          <button type="button" className="kt-rip-btn" onClick={open ? reseal : rip} disabled={cards.length === 0 && !open}>
+          <button type="button" className="kt-rip-btn" onClick={open ? reseal : rip} disabled={pool.length === 0 && !open}>
             <span className="kt-rip-btn__dot" aria-hidden />
             <span>{open ? t("ripBtnReseal") : t("ripBtnRip")}</span>
           </button>

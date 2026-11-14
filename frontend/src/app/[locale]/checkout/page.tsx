@@ -8,7 +8,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
 import { FibPaymentDialog, type FibPaymentInfo } from "@/components/fib-payment-dialog";
-import { cartSubtotal, useCartStore } from "@/lib/cart-store";
+import { cartSubtotal, useCartStore, useLiveCartStock } from "@/lib/cart-store";
 import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
 import { FIB_ENABLED } from "@/lib/features";
 import { getSupabaseClient } from "@/lib/supabase/client";
@@ -74,6 +74,7 @@ export default function CheckoutPage() {
   const locale = useLocale() as Locale;
   const router = useRouter();
   const { items, clear, syncStock, removeItem } = useCartStore();
+  useLiveCartStock();
   // One id per checkout attempt, sent as the order id so a double-submit or
   // a retried request can't create two orders (see /api/checkout).
   const attemptIdRef = useRef<string | null>(null);

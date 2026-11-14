@@ -7,7 +7,7 @@ import { Minus, Plus, ShoppingBag, X } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
-import { cartSubtotal, useCartCount, useCartStore } from "@/lib/cart-store";
+import { cartSubtotal, useCartCount, useCartStore, useLiveCartStock } from "@/lib/cart-store";
 
 /**
  * Desktop header trigger. The drawer itself is mounted once, in `Header`.
@@ -38,6 +38,7 @@ export function CartButton() {
 export function CartDrawer() {
   const { items, isOpen, close, setQuantity, removeItem } = useCartStore();
   const t = useTranslations("cart");
+  useLiveCartStock(isOpen);
 
   return (
     <Dialog.Root open={isOpen} onOpenChange={(open) => (open ? undefined : close())}>

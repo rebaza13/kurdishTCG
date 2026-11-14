@@ -1,6 +1,6 @@
 import { useTranslations } from "next-intl";
-import { User } from "lucide-react";
 import { Link } from "@/i18n/navigation";
+import { AccountButton } from "@/components/user-avatar";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LocaleSwitcher } from "@/components/locale-switcher";
 import { CartButton, CartDrawer } from "@/components/cart-drawer";
@@ -56,9 +56,7 @@ export function Header() {
           <LocaleSwitcher />
           <ThemeToggle />
           <div className="kt-desktop-only">
-            <Link href="/account" className="kt-icon-btn" aria-label={t("account")}>
-              <User className="size-[18px]" strokeWidth={1.8} />
-            </Link>
+            <AccountButton />
             <CartButton />
           </div>
         </div>

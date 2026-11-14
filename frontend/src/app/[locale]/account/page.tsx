@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import type { AuthError } from "@supabase/supabase-js";
 import { ChevronRight, Loader2, LogOut, Package } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
+import { UserAvatar } from "@/components/user-avatar";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useSupabaseUser } from "@/lib/use-supabase-user";
 import { statusPillClass } from "./order-status";
@@ -18,7 +20,37 @@ type OrderRow = {
   payment_status: string | null;
   total: number;
   created_at: string;
+  order_items: {
+    id: string;
+    product_name: string;
+    quantity: number;
+    products: { image: string | null } | null;
+  }[];
 };
+
+/** Up to three overlapping product photos, so an order is recognisable at a glance. */
+function OrderThumbs({ items }: { items: OrderRow["order_items"] }) {
+  const shown = items.slice(0, 3);
+  if (shown.length === 0) {
+    return <Package className="size-4 shrink-0 text-[var(--color-text-muted)]" />;
+  }
+  return (
+    <div className="flex shrink-0 -space-x-4 rtl:space-x-reverse">
+      {shown.map((item) => (
+        <div
+          key={item.id}
+          className="relative h-14 w-11 overflow-hidden rounded-[var(--radius-xs)] border-2 border-[var(--color-bg)] bg-[var(--color-neutral-200)]"
+        >
+          {item.products?.image ? (
+            <Image src={item.products.image} alt="" fill sizes="44px" className="object-cover" />
+          ) : (
+            <Package className="absolute inset-0 m-auto size-4 text-[var(--color-text-muted)]" aria-hidden />
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
 
 function GoogleIcon() {
   return (
@@ -92,7 +124,9 @@ export default function AccountPage() {
     let cancelled = false;
     getSupabaseClient()
       .from("orders")
-      .select("id, status, payment_method, payment_status, total, created_at")
+      .select(
+        "id, status, payment_method, payment_status, total, created_at, order_items(id, product_name, quantity, products(image))"
+      )
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         if (!cancelled) setOrders((data as OrderRow[] | null) ?? []);
@@ -171,11 +205,19 @@ export default function AccountPage() {
     return (
       <div className="mx-auto w-full max-w-[720px] px-4 py-12 md:px-10 md:py-16 flex flex-col gap-10">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="min-w-0">
-            <h1 className="text-2xl md:text-3xl">{t("welcomeBack")}</h1>
-            <p className="truncate text-sm text-[var(--color-text-muted)]" dir="ltr">
-              {user.email}
-            </p>
+          <div className="flex min-w-0 items-center gap-4">
+            <UserAvatar size={56} fallback={null} />
+            <div className="min-w-0">
+              <h1 className="text-2xl md:text-3xl">{t("welcomeBack")}</h1>
+              {(user.user_metadata?.full_name || user.user_metadata?.name) && (
+                <p className="truncate text-sm font-heading font-[var(--font-heading-weight)]">
+                  {user.user_metadata.full_name || user.user_metadata.name}
+                </p>
+              )}
+              <p className="truncate text-sm text-[var(--color-text-muted)]" dir="ltr">
+                {user.email}
+              </p>
+            </div>
           </div>
           <Button variant="secondary" size="sm" onClick={handleSignOut}>
             <LogOut className="size-3.5 rtl:-scale-x-100" />
@@ -210,9 +252,22 @@ export default function AccountPage() {
                     className="flex items-center justify-between gap-3 px-4 py-4 transition-colors hover:bg-[var(--color-surface)]"
                   >
                     <div className="flex min-w-0 items-center gap-3">
-                      <Package className="size-4 shrink-0 text-[var(--color-text-muted)]" />
+                      <OrderThumbs items={order.order_items ?? []} />
                       <div className="min-w-0">
-                        <p className="text-sm font-heading font-[var(--font-heading-weight)]">
+                        {order.order_items?.length > 0 && (
+                          <p className="truncate text-sm font-heading font-[var(--font-heading-weight)]">
+                            {order.order_items[0].product_name}
+                            <span className="font-body font-normal text-[var(--color-text-muted)]" dir="ltr">
+                              {" "}× {order.order_items[0].quantity}
+                            </span>
+                            {order.order_items.length > 1 && (
+                              <span className="font-body font-normal text-[var(--color-text-muted)]" dir="ltr">
+                                {" "}+{order.order_items.length - 1}
+                              </span>
+                            )}
+                          </p>
+                        )}
+                        <p className="text-xs text-[var(--color-text-muted)]">
                           <span dir="ltr" className="font-mono">
                             #{order.id.slice(0, 8).toUpperCase()}
                           </span>

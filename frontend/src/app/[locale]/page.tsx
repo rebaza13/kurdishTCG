@@ -114,7 +114,7 @@ async function HomeContent({ locale }: { locale: Locale }) {
 
       {/* Clip the rotated marquee / hero ring so the page never scrolls sideways. */}
       <div className="kt-home">
-      <PackRipHero franchises={franchises} />
+      <PackRipHero franchises={franchises} singles={singles} />
 
       {franchises.length > 0 && (
         <div className="kt-marquee">

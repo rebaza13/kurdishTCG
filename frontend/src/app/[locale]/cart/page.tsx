@@ -6,10 +6,11 @@ import { Minus, Plus, ShoppingBag } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
-import { cartSubtotal, useCartStore } from "@/lib/cart-store";
+import { cartSubtotal, useCartStore, useLiveCartStock } from "@/lib/cart-store";
 
 export default function CartPage() {
   const { items, setQuantity, removeItem } = useCartStore();
+  useLiveCartStock();
   const t = useTranslations("cart");
 
   if (items.length === 0) {

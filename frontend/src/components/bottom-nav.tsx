@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useCartCount, useCartStore } from "@/lib/cart-store";
+import { UserAvatar } from "@/components/user-avatar";
 
 type Tab = { href: string; key: "home" | "shop" | "search" | "account" };
 
@@ -45,7 +46,13 @@ export function BottomNav() {
       </button>
 
       {RIGHT_TABS.map((item) => (
-        <NavTab key={item.key} href={item.href} label={t(item.key)} active={isActive(item.href)} icon={ICONS[item.key]} />
+        <NavTab
+          key={item.key}
+          href={item.href}
+          label={t(item.key)}
+          active={isActive(item.href)}
+          icon={item.key === "account" ? <UserAvatar size={22} fallback={ICONS.account} /> : ICONS[item.key]}
+        />
       ))}
     </nav>
   );

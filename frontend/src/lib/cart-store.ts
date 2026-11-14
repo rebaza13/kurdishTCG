@@ -1,9 +1,10 @@
 "use client";
 
-import { useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import type { CartItem, Product } from "@tcg/types";
+import { getSupabaseClient } from "@/lib/supabase/client";
 
 interface CartState {
   items: CartItem[];
@@ -65,7 +66,7 @@ export const useCartStore = create<CartState>()(
               ? get().items.filter((i) => i.productId !== productId)
               : get().items.map((i) =>
                   i.productId === productId
-                    ? { ...i, quantity: Math.min(quantity, i.stock) }
+                    ? { ...i, quantity: Number.isFinite(i.stock) ? Math.min(quantity, i.stock) : i.quantity }
                     : i
                 ),
         }),
@@ -95,6 +96,39 @@ export function cartSubtotal(items: CartItem[]): number {
 
 export function cartCount(items: CartItem[]): number {
   return items.reduce((sum, i) => sum + i.quantity, 0);
+}
+
+/**
+ * Refresh each cart line's stock cap from the database while `active`. The
+ * cap saved with a line is a snapshot from when it was added (it lives in
+ * localStorage), so without this a box restocked down to 2 in the dashboard
+ * could still be stepped up to whatever the old stock was.
+ */
+export function useLiveCartStock(active = true): void {
+  const ids = useCartStore((s) => s.items.map((i) => i.productId).sort().join(","));
+  useEffect(() => {
+    if (!active || !ids) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const productIds = ids.split(",");
+        const { data, error } = await getSupabaseClient()
+          .from("products")
+          .select("id, stock")
+          .in("id", productIds);
+        if (cancelled || error || !data) return;
+        const live = new Map(data.map((r: { id: string; stock: number }) => [r.id, r.stock]));
+        const { syncStock } = useCartStore.getState();
+        // A product missing from the result was deleted — treat it as sold out.
+        for (const id of productIds) syncStock(id, live.get(id) ?? 0);
+      } catch {
+        // Offline or misconfigured: keep the saved caps; checkout re-checks anyway.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [active, ids]);
 }
 
 const noopSubscribe = () => () => {};
