@@ -39,6 +39,11 @@ export function errorMessage(err: unknown): string {
       return "This row is still referenced by other data (for example products or past orders), so it can't be deleted.";
     }
     if (e.code === "23505") return "A record with that identifier already exists.";
+    // Raised by the stock triggers when confirming would take more than is left.
+    const short = /out_of_stock:(\S+)/.exec(e.message ?? "");
+    if (short) {
+      return `Not enough stock to confirm this order — product "${short[1]}" doesn't have enough left. Restock it or cancel the order.`;
+    }
     if (e.message) return e.message;
   }
   return "Something went wrong.";
