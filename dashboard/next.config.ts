@@ -1,6 +1,8 @@
 import path from "node:path";
 import type { NextConfig } from "next";
 
+// Note: stock is reserved when an order is placed and returned when it is
+// cancelled (see supabase/migrations/0010_reserve_stock_on_order.sql).
 const nextConfig: NextConfig = {
   // `@tcg/types` lives in ../packages/types, outside this app — Turbopack only
   // resolves files under its root, so point the root at the repo.
