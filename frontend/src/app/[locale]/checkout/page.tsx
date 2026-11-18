@@ -11,7 +11,6 @@ import { FibPaymentDialog, type FibPaymentInfo } from "@/components/fib-payment-
 import { cartSubtotal, useCartStore, useLiveCartStock } from "@/lib/cart-store";
 import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
 import { FIB_ENABLED } from "@/lib/features";
-import { getSupabaseClient } from "@/lib/supabase/client";
 import { normalizeIraqiMobile } from "@/lib/phone";
 import { GOVERNORATES } from "@/lib/governorates";
 import type { Locale } from "@/i18n/routing";
@@ -45,29 +44,6 @@ function Field({
   );
 }
 
-function GoogleIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-4" aria-hidden>
-      <path
-        fill="currentColor"
-        d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z"
-      />
-      <path
-        fill="currentColor"
-        d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.99.66-2.25 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84A11 11 0 0 0 12 23z"
-      />
-      <path
-        fill="currentColor"
-        d="M5.84 14.09A6.6 6.6 0 0 1 5.5 12c0-.73.13-1.43.34-2.09V7.07H2.18A11 11 0 0 0 1 12c0 1.77.43 3.45 1.18 4.93z"
-      />
-      <path
-        fill="currentColor"
-        d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1a11 11 0 0 0-9.82 6.07l3.66 2.84C6.71 7.31 9.14 5.38 12 5.38z"
-      />
-    </svg>
-  );
-}
-
 export default function CheckoutPage() {
   const t = useTranslations("checkout");
   const cartT = useTranslations("cart");
@@ -86,7 +62,6 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [phoneError, setPhoneError] = useState<string | null>(null);
-  const [googleError, setGoogleError] = useState<string | null>(null);
   const [fibPayment, setFibPayment] = useState<{ orderId: string; payment: FibPaymentInfo } | null>(
     null
   );
@@ -99,16 +74,6 @@ export default function CheckoutPage() {
 
   const subtotal = cartSubtotal(items);
   const total = subtotal;
-
-  async function handleGoogle() {
-    setGoogleError(null);
-    const supabase = getSupabaseClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: window.location.href },
-    });
-    if (error) setGoogleError(t("googleNotConfigured"));
-  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -125,7 +90,8 @@ export default function CheckoutPage() {
       if (phoneInput instanceof HTMLInputElement) phoneInput.focus();
       return;
     }
-    if (!user) {
+    if (!user && paymentMethod === "fib") {
+      // Paying online happens from the account's order page.
       setError(t("signInRequired"));
       return;
     }
@@ -244,30 +210,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="mx-auto max-w-[1440px] px-4 py-10 md:px-10 grid lg:grid-cols-[1fr_380px] gap-10">
-      {!user ? (
-        // Orders are tied to an account: sign in first (cart is kept across the Google redirect).
-        <div className="flex flex-col gap-6">
-          <h1 className="text-3xl">{t("title")}</h1>
-          {user === undefined ? (
-            <Loader2 className="size-5 animate-spin text-[var(--color-text-muted)]" aria-label={t("title")} />
-          ) : (
-            <div className="flex max-w-[460px] flex-col gap-3 border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-lg)] px-6 py-6 bg-[var(--color-surface)]">
-              <h2 className="text-lg">{t("signInToOrderTitle")}</h2>
-              <p className="text-sm text-[var(--color-text-muted)]">{t("signInToOrderBody")}</p>
-              <Button type="button" variant="primary" size="lg" className="w-full justify-center" onClick={handleGoogle}>
-                <GoogleIcon />
-                {t("continueWithGoogle")}
-              </Button>
-              {googleError && <p className="text-xs text-[var(--color-accent)]">{googleError}</p>}
-              <Link href="/account" className="text-xs text-[var(--color-accent)] underline-offset-2 hover:underline">
-                {t("useEmailInstead")}
-              </Link>
-            </div>
-          )}
-        </div>
-      ) : (
       <form className="flex flex-col gap-10" onSubmit={handleSubmit}>
-        <h1 className="text-3xl">{t("title")}</h1>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-3xl">{t("title")}</h1>
+          <p className="text-sm text-[var(--color-text-muted)] max-w-[52ch]">{t("guestNote")}</p>
+        </div>
 
         <section className="flex flex-col gap-4">
           <h2 className="text-lg">{t("contact")}</h2>
@@ -386,13 +333,12 @@ export default function CheckoutPage() {
           type="submit"
           size="lg"
           className="w-full justify-center"
-          disabled={submitting || !user}
+          disabled={submitting}
         >
           {submitting ? <Loader2 className="size-4 animate-spin" /> : null}
           {paymentMethod === "fib" ? t("payWithFib") : t("placeOrder")}
         </Button>
       </form>
-      )}
 
       <aside className="h-fit border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-6 flex flex-col gap-4 rounded-[var(--radius-lg)] lg:sticky lg:top-24 max-lg:-order-1">
         <h2 className="text-lg">{t("orderSummary")}</h2>
