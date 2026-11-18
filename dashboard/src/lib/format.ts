@@ -46,23 +46,11 @@ export const ORDER_STATUSES: OrderStatus[] = [
 ];
 
 export const STATUS_LABEL: Record<OrderStatus, string> = {
-  requested: "New request",
+  requested: "Pending",
   confirmed: "Confirmed",
   shipped: "Out for delivery",
   delivered: "Delivered",
-  cancelled: "Cancelled",
-};
-
-/**
- * Which statuses an order may move to from its current one. `shipped` needs
- * the enum value from supabase/migrations/0001_admin_dashboard.sql.
- */
-export const NEXT_STATUSES: Record<OrderStatus, OrderStatus[]> = {
-  requested: ["confirmed", "cancelled"],
-  confirmed: ["shipped", "delivered", "cancelled"],
-  shipped: ["delivered", "cancelled"],
-  delivered: [],
-  cancelled: ["requested"],
+  cancelled: "Rejected",
 };
 
 export const PAYMENT_STATUS_LABEL: Record<PaymentStatus, string> = {

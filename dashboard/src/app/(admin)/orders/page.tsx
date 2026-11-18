@@ -3,17 +3,21 @@
 import { Suspense, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Search } from "lucide-react";
+import { Check, Search, XCircle } from "lucide-react";
 import type { OrderStatus, PaymentStatus } from "@tcg/types";
-import { getSupabase } from "@/lib/supabase";
+import { errorMessage, getSupabase } from "@/lib/supabase";
+import { NEXT_STEP, canReject, setOrderStatus } from "@/lib/order-actions";
 import { useQuery } from "@/lib/use-query";
 import { ORDER_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
+  Button,
   Card,
+  ConfirmButton,
   EmptyState,
   ErrorWithRetry,
   Input,
+  Notice,
   PageHeader,
   PaymentStatusBadge,
   Spinner,
@@ -46,12 +50,70 @@ async function loadOrders() {
   return (data ?? []) as OrderRow[];
 }
 
+/** Inline Accept / next step / Reject — handle an order without opening it. */
+function QuickActions({
+  order,
+  onDone,
+  onError,
+  className,
+}: {
+  order: OrderRow;
+  onDone: () => void;
+  onError: (message: string) => void;
+  className?: string;
+}) {
+  const [saving, setSaving] = useState<OrderStatus | null>(null);
+  const step = NEXT_STEP[order.status];
+  if (!step && !canReject(order.status)) return null;
+
+  async function run(next: OrderStatus) {
+    setSaving(next);
+    try {
+      await setOrderStatus(order, next);
+      onDone();
+    } catch (err) {
+      onError(errorMessage(err));
+    } finally {
+      setSaving(null);
+    }
+  }
+
+  return (
+    <div className={cn("flex flex-wrap gap-2", className)}>
+      {step && (
+        <Button
+          size="sm"
+          variant="primary"
+          loading={saving === step.to}
+          disabled={saving !== null}
+          onClick={() => run(step.to)}
+        >
+          {order.status === "requested" && saving === null && <Check className="size-3.5" />}
+          {order.status === "requested" ? "Accept" : step.label}
+        </Button>
+      )}
+      {canReject(order.status) && (
+        <ConfirmButton
+          size="sm"
+          loading={saving === "cancelled"}
+          disabled={saving !== null}
+          onConfirm={() => run("cancelled")}
+          confirmLabel="Tap to confirm"
+        >
+          <XCircle className="size-3.5" /> Reject
+        </ConfirmButton>
+      )}
+    </div>
+  );
+}
+
 function OrdersView() {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
   const [query, setQuery] = useState("");
   const { data, error, reload } = useQuery(loadOrders, []);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const raw = params.get("status");
   const active = ORDER_STATUSES.find((s) => s === raw) ?? "all";
@@ -115,42 +177,62 @@ function OrdersView() {
         </div>
       </div>
 
-      {/* Phones: a stacked list — a scrolling table hides the status column. */}
+      {actionError && (
+        <div className="mb-4">
+          <Notice>{actionError}</Notice>
+        </div>
+      )}
+
+      {/* Phones and tablets: stacked cards with the actions under each order. */}
       {rows.length > 0 && (
-        <Card className="sm:hidden">
-          <ul className="divide-y divide-line">
-            {rows.map((o) => (
-              <li key={o.id}>
-                <Link href={`/orders/${o.id}`} className="block px-4 py-3 hover:bg-surface-2">
+        <ul className="flex flex-col gap-3 lg:hidden">
+          {rows.map((o) => (
+            <li key={o.id}>
+              <Card className="overflow-hidden">
+                <Link href={`/orders/${o.id}`} className="block px-4 pt-3 pb-2 hover:bg-surface-2">
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{o.full_name}</div>
+                      <div className="truncate text-sm font-semibold">{o.full_name}</div>
                       <div className="truncate text-xs text-muted">
-                        #{shortId(o.id)} · {o.city} · {dateTime(o.created_at)}
+                        <span dir="ltr">{o.phone}</span> · {o.city}
                       </div>
                     </div>
-                    <div className="shrink-0 text-sm tabular-nums">{money(o.total, o.currency)}</div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-sm font-semibold tabular-nums">{money(o.total, o.currency)}</div>
+                      <div className="text-xs text-muted tabular-nums">
+                        {o.order_items.reduce((n, i) => n + i.quantity, 0)} items
+                      </div>
+                    </div>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
+                  <div className="mt-2 flex flex-wrap items-center gap-1.5">
                     <StatusBadge status={o.status} />
                     {o.payment_method === "fib" && o.payment_status && (
                       <PaymentStatusBadge status={o.payment_status} />
                     )}
+                    <span className="ml-auto text-xs text-muted">
+                      #{shortId(o.id)} · {dateTime(o.created_at)}
+                    </span>
                   </div>
                 </Link>
-              </li>
-            ))}
-          </ul>
-        </Card>
+                <QuickActions
+                  order={o}
+                  onDone={reload}
+                  onError={setActionError}
+                  className="border-t border-line px-4 py-2.5 [&>button]:flex-1"
+                />
+              </Card>
+            </li>
+          ))}
+        </ul>
       )}
 
-      <Card className={cn("overflow-x-auto", rows.length > 0 && "hidden sm:block")}>
+      <Card className={cn("overflow-x-auto", rows.length > 0 && "hidden lg:block")}>
         {rows.length === 0 ? (
           <EmptyState>
             {data.length === 0 ? "No orders yet." : "No orders match these filters."}
           </EmptyState>
         ) : (
-          <table className="w-full min-w-[42rem] text-sm">
+          <table className="w-full min-w-[56rem] text-sm">
             <thead>
               <tr className="border-b border-line text-left text-xs text-muted">
                 <th className="px-4 py-3 font-medium">Order</th>
@@ -159,6 +241,7 @@ function OrdersView() {
                 <th className="px-4 py-3 text-right font-medium">Items</th>
                 <th className="px-4 py-3 text-right font-medium">Total</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-line">
@@ -190,6 +273,14 @@ function OrdersView() {
                         <PaymentStatusBadge status={o.payment_status} />
                       )}
                     </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <QuickActions
+                      order={o}
+                      onDone={reload}
+                      onError={setActionError}
+                      className="flex-nowrap justify-end"
+                    />
                   </td>
                 </tr>
               ))}

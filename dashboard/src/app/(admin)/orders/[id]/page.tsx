@@ -3,19 +3,40 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
-import { ArrowLeft, MessageCircle, Phone, RefreshCw } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Clock,
+  MessageCircle,
+  PackageCheck,
+  Phone,
+  RefreshCw,
+  RotateCcw,
+  ThumbsUp,
+  Truck,
+  XCircle,
+} from "lucide-react";
 import type { OrderStatus, PaymentStatus } from "@tcg/types";
-import { assertWritten, errorMessage, getSupabase } from "@/lib/supabase";
-import { ORDERS_CHANGED_EVENT, useQuery } from "@/lib/use-query";
-import { NEXT_STATUSES, ORDER_STATUSES, STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
+import { errorMessage, getSupabase } from "@/lib/supabase";
+import { useQuery } from "@/lib/use-query";
+import { STATUS_LABEL, dateTime, money, shortId } from "@/lib/format";
 import { cancelFibPayment, refundFibPayment } from "@/lib/fib-admin";
+import {
+  NEXT_STEP,
+  PIPELINE,
+  canReject,
+  previousStep,
+  replyTemplate,
+  setOrderStatus,
+  whatsappLink,
+} from "@/lib/order-actions";
+import { cn } from "@/lib/utils";
 import {
   Button,
   Card,
   ConfirmButton,
   ErrorWithRetry,
   Notice,
-  PageHeader,
   PaymentStatusBadge,
   Spinner,
   StatusBadge,
@@ -49,22 +70,77 @@ interface OrderDetail {
   }[];
 }
 
-/** wa.me wants digits only, with country code — assume Iraq (+964). */
-function whatsappLink(phone: string): string {
-  let digits = phone.replace(/\D/g, "");
-  if (digits.startsWith("00")) digits = digits.slice(2);
-  if (digits.startsWith("0")) digits = `964${digits.slice(1)}`;
-  return `https://wa.me/${digits}`;
-}
-
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const STEP_ICON: Record<string, typeof Clock> = {
+  requested: Clock,
+  confirmed: ThumbsUp,
+  shipped: Truck,
+  delivered: PackageCheck,
+};
+
+const NEXT_ICON: Partial<Record<OrderStatus, typeof Clock>> = {
+  requested: Check,
+  confirmed: Truck,
+  shipped: PackageCheck,
+};
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 py-2 text-sm">
+    <div className="flex justify-between gap-4 py-2.5 text-sm">
       <dt className="shrink-0 text-muted">{label}</dt>
       <dd className="min-w-0 break-words text-right">{children}</dd>
     </div>
+  );
+}
+
+/** Pending → Confirmed → Out for delivery → Delivered. */
+function Stepper({ status }: { status: OrderStatus }) {
+  const current = PIPELINE.indexOf(status);
+  const rejected = status === "cancelled";
+  return (
+    <ol className="grid grid-cols-4">
+      {PIPELINE.map((s, i) => {
+        const Icon = STEP_ICON[s];
+        const done = !rejected && i < current;
+        const active = !rejected && i === current;
+        const final = active && s === "delivered";
+        return (
+          <li key={s} className="relative flex flex-col items-center gap-2 text-center">
+            {i > 0 && (
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute right-1/2 top-4 h-0.5 w-full -translate-y-1/2",
+                  !rejected && i <= current ? "bg-accent" : "bg-line"
+                )}
+              />
+            )}
+            <span
+              className={cn(
+                "relative z-10 flex size-8 items-center justify-center rounded-full border-2 transition-colors",
+                final
+                  ? "border-ok bg-ok text-accent-fg"
+                  : done || active
+                    ? "border-accent bg-accent text-accent-fg"
+                    : "border-line bg-surface text-muted",
+                active && !final && "ring-4 ring-accent/20"
+              )}
+            >
+              {done ? <Check className="size-4" /> : <Icon className="size-4" />}
+            </span>
+            <span
+              className={cn(
+                "px-0.5 text-[11px] leading-tight sm:text-xs",
+                active ? "font-semibold text-fg" : done ? "text-fg" : "text-muted"
+              )}
+            >
+              {STATUS_LABEL[s]}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -89,22 +165,11 @@ export default function OrderDetailPage() {
   }, [id]);
 
   async function changeStatus(next: OrderStatus) {
+    if (!order) return;
     setActionError(null);
     setSaving(next);
     try {
-      const { data, error } = await getSupabase()
-        .from("orders")
-        .update({ status: next })
-        .eq("id", id)
-        .select("id");
-      if (error) throw error;
-      assertWritten(data, "The status change");
-      window.dispatchEvent(new Event(ORDERS_CHANGED_EVENT));
-      // Best-effort: an order cancelled while its FIB payment is still
-      // unpaid shouldn't stay payable. Never blocks the status change.
-      if (next === "cancelled" && order?.payment_method === "fib" && order.payment_status === "pending") {
-        await cancelFibPayment(id).catch(() => {});
-      }
+      await setOrderStatus(order, next);
       reload();
     } catch (err) {
       setActionError(errorMessage(err));
@@ -113,24 +178,11 @@ export default function OrderDetailPage() {
     }
   }
 
-  async function handleRefund() {
+  async function runPaymentAction(kind: "refund" | "cancel") {
     setPaymentActionError(null);
-    setPaymentAction("refund");
+    setPaymentAction(kind);
     try {
-      await refundFibPayment(id);
-      reload();
-    } catch (err) {
-      setPaymentActionError(errorMessage(err));
-    } finally {
-      setPaymentAction(null);
-    }
-  }
-
-  async function handleCancelPayment() {
-    setPaymentActionError(null);
-    setPaymentAction("cancel");
-    try {
-      await cancelFibPayment(id);
+      await (kind === "refund" ? refundFibPayment(id) : cancelFibPayment(id));
       reload();
     } catch (err) {
       setPaymentActionError(errorMessage(err));
@@ -165,227 +217,243 @@ export default function OrderDetailPage() {
     );
   }
 
-  // The usual next step comes first (and is highlighted); every other status is
-  // still reachable so a mis-click — e.g. "delivered" too early — can be undone.
-  const flow = NEXT_STATUSES[order.status] ?? [];
-  const next = [
-    ...flow,
-    ...ORDER_STATUSES.filter((s) => s !== order.status && !flow.includes(s)),
-  ];
+  const step = NEXT_STEP[order.status];
+  const NextIcon = NEXT_ICON[order.status];
+  const prev = previousStep(order.status);
   const paidOnline = order.payment_method === "fib" && order.payment_status === "paid";
+  const ref = shortId(order.id);
+  const itemCount = order.order_items.reduce((n, i) => n + i.quantity, 0);
 
   return (
     <>
       {back}
-      <PageHeader
-        title={`Order #${shortId(order.id)}`}
-        subtitle={dateTime(order.created_at)}
-        actions={<StatusBadge status={order.status} />}
-      />
 
-      {actionError && (
-        <div className="mb-4">
-          <Notice>{actionError}</Notice>
+      {/* Header */}
+      <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">Order #{ref}</h1>
+            <StatusBadge status={order.status} />
+          </div>
+          <p className="mt-1 text-sm text-muted">
+            {dateTime(order.created_at)} · {itemCount} item{itemCount === 1 ? "" : "s"} ·{" "}
+            <span className="font-medium text-fg">{money(order.total, order.currency)}</span>
+          </p>
         </div>
-      )}
+      </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-        <div className="flex min-w-0 flex-col gap-6">
-          <Card>
-            <div className="border-b border-line px-4 py-3 text-sm font-semibold">Items</div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-line text-left text-xs text-muted">
-                    <th className="px-4 py-2.5 font-medium">Product</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Qty</th>
-                    <th className="hidden px-4 py-2.5 text-right font-medium sm:table-cell">Price</th>
-                    <th className="px-4 py-2.5 text-right font-medium">Line</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-line">
-                  {order.order_items.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={4}
-                        className="px-4 py-6 text-center text-sm text-muted [overflow-wrap:anywhere]"
-                      >
-                        No line items visible. If this order has items, the database is
-                        missing the admin read policy from migration
-                        0005_order_items_admin_read.sql.
-                      </td>
-                    </tr>
-                  )}
-                  {order.order_items.map((item) => (
-                    <tr key={item.id}>
-                      <td className="break-words px-4 py-3">
-                        <Link
-                          href={`/products/${encodeURIComponent(item.product_id)}`}
-                          className="hover:text-accent"
-                        >
-                          {item.product_name}
-                        </Link>
-                      </td>
-                      <td className="px-4 py-3 text-right tabular-nums">{item.quantity}</td>
-                      <td className="hidden px-4 py-3 text-right tabular-nums sm:table-cell">
-                        {money(item.unit_price, order.currency)}
-                      </td>
-                      <td className="whitespace-nowrap px-4 py-3 text-right tabular-nums">
-                        {money(Number(item.unit_price) * item.quantity, order.currency)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
+        {/* Status + actions — first thing on every screen size. */}
+        <Card className="p-4 sm:p-5 lg:col-span-2">
+          {order.status === "cancelled" ? (
+            <div className="flex items-start gap-3 rounded-lg bg-danger/10 px-3 py-3 text-sm text-danger">
+              <XCircle className="mt-0.5 size-5 shrink-0" />
+              <div>
+                <div className="font-semibold">This order was rejected</div>
+                <div className="text-danger/80">Its stock has been put back on sale.</div>
+              </div>
             </div>
-            <dl className="divide-y divide-line border-t border-line px-4">
-              <Row label="Subtotal">{money(order.subtotal, order.currency)}</Row>
-              <Row label="Total">
-                <span className="text-base font-semibold">
-                  {money(order.total, order.currency)}
-                </span>
-              </Row>
-              <Row label="Payment">
-                {order.payment_method === "cash" ? "Cash on delivery" : "Pay with FIB"}
-              </Row>
-            </dl>
-          </Card>
-        </div>
-
-        <div className="flex min-w-0 flex-col gap-6">
-          <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold">Update status</h2>
-            {next.length === 0 ? (
-              <p className="text-sm text-muted">
-                This order is {STATUS_LABEL[order.status].toLowerCase()} — nothing further to do.
-              </p>
-            ) : (
-              <div className="flex flex-wrap gap-2">
-                {next.map((s) =>
-                  s === "cancelled" ? (
-                    <ConfirmButton
-                      key={s}
-                      loading={saving === s}
-                      disabled={saving !== null}
-                      onConfirm={() => changeStatus(s)}
-                      confirmLabel="Click again to cancel"
-                    >
-                      Cancel order
-                    </ConfirmButton>
-                  ) : (
-                    <Button
-                      key={s}
-                      variant={s === flow[0] ? "primary" : "secondary"}
-                      loading={saving === s}
-                      disabled={saving !== null}
-                      onClick={() => changeStatus(s)}
-                    >
-                      {s === "requested"
-                        ? order.status === "cancelled"
-                          ? "Reopen"
-                          : "Back to new request"
-                        : `Mark ${STATUS_LABEL[s].toLowerCase()}`}
-                    </Button>
-                  )
-                )}
-              </div>
-            )}
-            {paidOnline && (next.includes("cancelled") || order.status === "cancelled") && (
-              <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">
-                {order.status === "cancelled"
-                  ? "This order is cancelled but its FIB payment is still paid — refund it below."
-                  : "This order was paid with FIB. Cancelling does not return the money — refund the payment below as well."}
-              </p>
-            )}
-            <p className="mt-3 text-xs text-muted">
-              Stock is reserved when an order is placed and returned automatically if you cancel it
-              (and taken again if you reopen it).
-            </p>
-          </Card>
-
-          {order.payment_method === "fib" && (
-            <Card className="p-4">
-              <div className="mb-2 flex items-center justify-between">
-                <h2 className="text-sm font-semibold">Payment</h2>
-                {order.payment_status && <PaymentStatusBadge status={order.payment_status} />}
-              </div>
-              <dl className="divide-y divide-line">
-                {order.fib_readable_code && (
-                  <Row label="FIB code">
-                    <span dir="ltr">{order.fib_readable_code}</span>
-                  </Row>
-                )}
-                {order.fib_paid_at && <Row label="Paid at">{dateTime(order.fib_paid_at)}</Row>}
-                {order.fib_paid_by_name && <Row label="Paid by">{order.fib_paid_by_name}</Row>}
-                {order.fib_paid_by_iban && (
-                  <Row label="IBAN">
-                    <span dir="ltr">{order.fib_paid_by_iban}</span>
-                  </Row>
-                )}
-                {order.fib_declining_reason && (
-                  <Row label="Decline reason">{order.fib_declining_reason}</Row>
-                )}
-              </dl>
-              {paymentActionError && (
-                <div className="mt-3">
-                  <Notice>{paymentActionError}</Notice>
-                </div>
-              )}
-              {order.payment_status === "paid" && (
-                <div className="mt-3">
-                  <ConfirmButton
-                    loading={paymentAction === "refund"}
-                    disabled={paymentAction !== null}
-                    onConfirm={handleRefund}
-                    confirmLabel="Click again to refund"
-                  >
-                    Refund payment
-                  </ConfirmButton>
-                </div>
-              )}
-              {order.payment_status === "pending" && (
-                <Button
-                  className="mt-3"
-                  variant="secondary"
-                  loading={paymentAction === "cancel"}
-                  disabled={paymentAction !== null}
-                  onClick={handleCancelPayment}
-                >
-                  <RefreshCw className="size-3.5" /> Cancel FIB payment
-                </Button>
-              )}
-            </Card>
+          ) : (
+            <Stepper status={order.status} />
           )}
 
-          <Card className="p-4">
-            <h2 className="mb-2 text-sm font-semibold">Customer</h2>
-            <dl className="divide-y divide-line">
-              <Row label="Name">{order.full_name}</Row>
-              <Row label="Phone">
-                <span dir="ltr">{order.phone}</span>
-              </Row>
-              <Row label="City">{order.city}</Row>
-              <Row label="Address">{order.address}</Row>
-              {order.notes && <Row label="Notes">{order.notes}</Row>}
-            </dl>
-            <div className="mt-3 flex gap-2">
-              <a
-                href={`tel:${order.phone.replace(/\s+/g, "")}`}
-                className="inline-flex h-8 items-center gap-2 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2"
-              >
-                <Phone className="size-3.5" /> Call
-              </a>
-              <a
-                href={whatsappLink(order.phone)}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex h-8 items-center gap-2 rounded-lg border border-line px-3 text-xs font-medium hover:bg-surface-2"
-              >
-                <MessageCircle className="size-3.5" /> WhatsApp
-              </a>
+          {actionError && (
+            <div className="mt-4">
+              <Notice>{actionError}</Notice>
             </div>
+          )}
+
+          <div className="mt-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+            {step && (
+              <Button
+                variant="primary"
+                className="h-11 w-full sm:w-auto sm:min-w-48"
+                loading={saving === step.to}
+                disabled={saving !== null}
+                onClick={() => changeStatus(step.to)}
+              >
+                {NextIcon && saving !== step.to && <NextIcon className="size-4" />}
+                {step.label}
+              </Button>
+            )}
+            {canReject(order.status) && (
+              <ConfirmButton
+                className="h-11 w-full sm:w-auto"
+                loading={saving === "cancelled"}
+                disabled={saving !== null}
+                onConfirm={() => changeStatus("cancelled")}
+                confirmLabel="Tap again to reject"
+              >
+                <XCircle className="size-4" /> Reject order
+              </ConfirmButton>
+            )}
+            {order.status === "cancelled" && (
+              <Button
+                variant="primary"
+                className="h-11 w-full sm:w-auto"
+                loading={saving === "requested"}
+                disabled={saving !== null}
+                onClick={() => changeStatus("requested")}
+              >
+                <RotateCcw className="size-4" /> Reopen as pending
+              </Button>
+            )}
+            {order.status === "delivered" && (
+              <p className="text-sm text-ok">Delivered — this order is complete.</p>
+            )}
+            {prev && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="self-start sm:ml-auto sm:self-auto"
+                disabled={saving !== null}
+                loading={saving === prev}
+                onClick={() => changeStatus(prev)}
+              >
+                <RotateCcw className="size-3.5" /> Undo — back to {STATUS_LABEL[prev].toLowerCase()}
+              </Button>
+            )}
+          </div>
+
+          {paidOnline && (canReject(order.status) || order.status === "cancelled") && (
+            <p className="mt-3 rounded-lg bg-warn/10 px-3 py-2 text-xs text-warn">
+              {order.status === "cancelled"
+                ? "This order is rejected but its FIB payment is still paid — refund it below."
+                : "This order was paid with FIB. Rejecting does not return the money — refund the payment below as well."}
+            </p>
+          )}
+        </Card>
+
+        {/* Customer + reply */}
+        <Card className="p-4 sm:p-5 lg:order-2">
+          <h2 className="mb-1 text-sm font-semibold">Customer</h2>
+          <dl className="divide-y divide-line">
+            <Row label="Name">{order.full_name}</Row>
+            <Row label="Phone">
+              <a href={`tel:${order.phone.replace(/\s+/g, "")}`} dir="ltr" className="hover:text-accent">
+                {order.phone}
+              </a>
+            </Row>
+            <Row label="City">{order.city}</Row>
+            <Row label="Address">{order.address}</Row>
+            {order.notes && <Row label="Notes">{order.notes}</Row>}
+          </dl>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            <a
+              href={`tel:${order.phone.replace(/\s+/g, "")}`}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line text-sm font-medium hover:bg-surface-2"
+            >
+              <Phone className="size-4" /> Call
+            </a>
+            <a
+              href={whatsappLink(order.phone, replyTemplate(order.status, order.full_name, ref))}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-line text-sm font-medium hover:bg-surface-2"
+            >
+              <MessageCircle className="size-4" /> WhatsApp
+            </a>
+          </div>
+          <p className="mt-2 text-xs text-muted">
+            WhatsApp opens with a message ready for the current status.
+          </p>
+        </Card>
+
+        {/* Items */}
+        <Card className="min-w-0 lg:order-1">
+          <div className="border-b border-line px-4 py-3 text-sm font-semibold sm:px-5">
+            Items
+          </div>
+          {order.order_items.length === 0 ? (
+            <p className="px-4 py-6 text-center text-sm text-muted [overflow-wrap:anywhere]">
+              No line items visible. If this order has items, the database is missing the admin
+              read policy from migration 0005_order_items_admin_read.sql.
+            </p>
+          ) : (
+            <ul className="divide-y divide-line">
+              {order.order_items.map((item) => (
+                <li key={item.id} className="flex items-start justify-between gap-3 px-4 py-3 sm:px-5">
+                  <div className="min-w-0">
+                    <Link
+                      href={`/products/${encodeURIComponent(item.product_id)}`}
+                      className="break-words text-sm font-medium hover:text-accent"
+                    >
+                      {item.product_name}
+                    </Link>
+                    <div className="text-xs text-muted tabular-nums">
+                      {item.quantity} × {money(item.unit_price, order.currency)}
+                    </div>
+                  </div>
+                  <div className="shrink-0 text-sm tabular-nums">
+                    {money(Number(item.unit_price) * item.quantity, order.currency)}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+          <dl className="divide-y divide-line border-t border-line px-4 sm:px-5">
+            <Row label="Payment">
+              {order.payment_method === "cash" ? "Cash on delivery" : "Pay with FIB"}
+            </Row>
+            <Row label="Total">
+              <span className="text-base font-semibold">{money(order.total, order.currency)}</span>
+            </Row>
+          </dl>
+        </Card>
+
+        {order.payment_method === "fib" && (
+          <Card className="p-4 sm:p-5 lg:order-3 lg:col-start-2">
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-sm font-semibold">Payment</h2>
+              {order.payment_status && <PaymentStatusBadge status={order.payment_status} />}
+            </div>
+            <dl className="divide-y divide-line">
+              {order.fib_readable_code && (
+                <Row label="FIB code">
+                  <span dir="ltr">{order.fib_readable_code}</span>
+                </Row>
+              )}
+              {order.fib_paid_at && <Row label="Paid at">{dateTime(order.fib_paid_at)}</Row>}
+              {order.fib_paid_by_name && <Row label="Paid by">{order.fib_paid_by_name}</Row>}
+              {order.fib_paid_by_iban && (
+                <Row label="IBAN">
+                  <span dir="ltr">{order.fib_paid_by_iban}</span>
+                </Row>
+              )}
+              {order.fib_declining_reason && (
+                <Row label="Decline reason">{order.fib_declining_reason}</Row>
+              )}
+            </dl>
+            {paymentActionError && (
+              <div className="mt-3">
+                <Notice>{paymentActionError}</Notice>
+              </div>
+            )}
+            {order.payment_status === "paid" && (
+              <div className="mt-3">
+                <ConfirmButton
+                  loading={paymentAction === "refund"}
+                  disabled={paymentAction !== null}
+                  onConfirm={() => runPaymentAction("refund")}
+                  confirmLabel="Click again to refund"
+                >
+                  Refund payment
+                </ConfirmButton>
+              </div>
+            )}
+            {order.payment_status === "pending" && (
+              <Button
+                className="mt-3"
+                variant="secondary"
+                loading={paymentAction === "cancel"}
+                disabled={paymentAction !== null}
+                onClick={() => runPaymentAction("cancel")}
+              >
+                <RefreshCw className="size-3.5" /> Cancel FIB payment
+              </Button>
+            )}
           </Card>
-        </div>
+        )}
       </div>
     </>
   );

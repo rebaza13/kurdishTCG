@@ -105,7 +105,7 @@ export default function OverviewPage() {
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
-          label="New requests"
+          label="Pending"
           value={count("requested")}
           hint="Waiting for your call"
           href="/orders?status=requested"
