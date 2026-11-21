@@ -135,7 +135,14 @@
     "bundleTag": "+{count} more",
     "description": "Details",
     "related": "You may also like",
-    "quantity": "Quantity"
+    "quantity": "Quantity",
+    "conditions": {
+      "new": "New",
+      "sealed": "Sealed",
+      "nearMint": "Near mint",
+      "lightlyPlayed": "Lightly played",
+      "used": "Used"
+    }
   },
   "cart": {
     "title": "Your cart",

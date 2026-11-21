@@ -305,8 +305,8 @@ h1, h2, h3, h4, h5, h6 {
   top: 0;
   z-index: 60;
   background: var(--color-glass);
-  backdrop-filter: blur(16px) saturate(1.4);
   -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
   border-bottom: 1px solid var(--color-border);
 }
 .kt-header__inner {
@@ -909,8 +909,8 @@ h1, h2, h3, h4, h5, h6 {
   padding: 0 6px;
   border-radius: var(--radius-lg);
   background: var(--color-glass);
-  backdrop-filter: blur(18px) saturate(1.5);
   -webkit-backdrop-filter: blur(18px) saturate(1.5);
+  backdrop-filter: blur(18px) saturate(1.5);
   border: 1px solid var(--color-border);
   box-shadow: 0 18px 40px -14px var(--color-shadow);
 }

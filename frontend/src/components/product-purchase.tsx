@@ -7,7 +7,7 @@ import { AddToCartButton } from "@/components/add-to-cart-button";
 import type { Product } from "@tcg/types";
 
 export function ProductPurchase({ product }: { product: Product }) {
-  const t = useTranslations("product");
+  const cartT = useTranslations("cart");
   const [quantity, setQuantity] = useState(1);
 
   if (product.stock <= 0) {
@@ -19,19 +19,19 @@ export function ProductPurchase({ product }: { product: Product }) {
       <div className="flex items-center border-[length:var(--border-width)] border-[var(--color-border)] rounded-[var(--radius-sm)]">
         <button
           type="button"
-          aria-label={t("quantity")}
+          aria-label={cartT("decrease")}
           disabled={quantity <= 1}
           onClick={() => setQuantity((q) => Math.max(1, q - 1))}
           className="grid size-11 place-items-center cursor-pointer disabled:cursor-not-allowed disabled:opacity-35"
         >
           <Minus className="size-3.5" />
         </button>
-        <span className="min-w-[2rem] text-center text-sm font-heading font-[var(--font-heading-weight)] [font-variant-numeric:tabular-nums]">
+        <span aria-live="polite" className="min-w-[2rem] text-center text-sm font-heading font-[var(--font-heading-weight)] [font-variant-numeric:tabular-nums]">
           {quantity}
         </span>
         <button
           type="button"
-          aria-label={t("quantity")}
+          aria-label={cartT("increase")}
           disabled={quantity >= product.stock}
           onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
           className="grid size-11 place-items-center cursor-pointer disabled:cursor-not-allowed disabled:opacity-35"

@@ -135,7 +135,14 @@
     "bundleTag": "+{count} إضافية",
     "description": "التفاصيل",
     "related": "قد يعجبك أيضًا",
-    "quantity": "الكمية"
+    "quantity": "الكمية",
+    "conditions": {
+      "new": "جديد",
+      "sealed": "مغلق",
+      "nearMint": "شبه جديد",
+      "lightlyPlayed": "استخدام خفيف",
+      "used": "مستعمل"
+    }
   },
   "cart": {
     "title": "سلتك",

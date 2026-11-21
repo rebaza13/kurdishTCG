@@ -16,6 +16,20 @@ import type { Locale } from "@/i18n/routing";
 
 export const revalidate = 300;
 
+/** Condition is free text set in the dashboard; translate the common values. */
+const CONDITION_KEYS: Record<string, string> = {
+  new: "new",
+  sealed: "sealed",
+  "near mint": "nearMint",
+  "lightly played": "lightlyPlayed",
+  used: "used",
+};
+
+function conditionLabel(condition: string, t: (key: string) => string): string {
+  const key = CONDITION_KEYS[condition.trim().toLowerCase()];
+  return key ? t(`conditions.${key}`) : condition;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -148,7 +162,7 @@ export default async function ProductDetailPage({
             <Field label={t("set")} value={product.set} />
             <Field label={t("type")} value={productType(product.type)} />
             {product.cardNumber && <Field label={t("cardNumber")} value={product.cardNumber} />}
-            <Field label={t("condition")} value={product.condition} />
+            <Field label={t("condition")} value={conditionLabel(product.condition, t)} />
             {product.grade && <Field label={t("grade")} value={product.grade} />}
           </dl>
 

@@ -135,7 +135,14 @@
     "bundleTag": "+{count} دانەی تر",
     "description": "وردەکاری",
     "related": "لەوانەیە پێت خۆش بێت",
-    "quantity": "ژمارە"
+    "quantity": "ژمارە",
+    "conditions": {
+      "new": "نوێ",
+      "sealed": "داخراو",
+      "nearMint": "نزیک لە نوێ",
+      "lightlyPlayed": "کەم بەکارهاتوو",
+      "used": "بەکارهاتوو"
+    }
   },
   "cart": {
     "title": "سەبەتەکەت",
