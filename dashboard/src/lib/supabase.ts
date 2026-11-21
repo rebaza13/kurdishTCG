@@ -56,6 +56,13 @@ export function errorMessage(err: unknown): string {
       return "This row is still referenced by other data (for example products or past orders), so it can't be deleted.";
     }
     if (e.code === "23505") return "A record with that identifier already exists.";
+    // 42883 = undefined_function: the database is missing a migration.
+    if (e.code === "42883") {
+      return (
+        "The database is missing a function this action needs — apply the newest file in " +
+        `supabase/migrations/ in the Supabase SQL editor, then retry. (${e.message ?? ""})`
+      );
+    }
     // Raised by the stock triggers, e.g. when reopening a cancelled order
     // whose items have sold out since.
     const short = /out_of_stock:(\S+)/.exec(e.message ?? "");
