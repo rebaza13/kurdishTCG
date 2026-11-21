@@ -107,7 +107,8 @@ export function ProductCard({
             {product.name}
           </Link>
         </h3>
-        <span className="kt-card__set">{product.set}</span>
+        {/* Sealed product's "set" is usually just the franchise again. */}
+        {single && <span className="kt-card__set">{product.set}</span>}
         <div className="kt-card__footer">
           <span className="kt-card__price">{formatPrice(product.price, locale)}</span>
           {action}

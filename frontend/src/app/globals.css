@@ -1114,24 +1114,54 @@ h1, h2, h3, h4, h5, h6 {
 .kt-card__media { position: absolute; inset: 0; z-index: -3; overflow: hidden; }
 .kt-card__img { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1), filter 0.3s ease; }
 .kt-card[data-kind="single"] .kt-card__img { object-fit: cover; transform: scale(1.025); }
-/* Sealed: image plate on top, solid info panel below — no overlay/fade. */
+/* Sealed: a shop-shelf display. The product stands on a lit plate tinted
+   by its franchise; `multiply` melts the white studio backdrop into the
+   plate. The info panel below uses the page's own surface colour, so the
+   grid reads as part of the page instead of a row of black slabs. Names reserve two lines so the plates
+   line up across a row. */
+.kt-card[data-kind="sealed"] {
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-shadow: 0 0 0 1px var(--color-border), 0 12px 28px -22px var(--color-shadow);
+}
 .kt-card[data-kind="sealed"] .kt-card__media {
+  --plate: #ffffff;
   position: relative;
   inset: auto;
   z-index: 0;
   flex: 1 1 0;
   min-height: 0;
-  background: #ffffff;
+  margin: 6px 6px 0;
+  border-radius: calc(var(--radius-md) - 6px);
+  background:
+    radial-gradient(110% 80% at 50% 18%, var(--plate) 0%, color-mix(in srgb, var(--card-accent) 5%, var(--plate)) 60%, color-mix(in srgb, var(--card-accent) 11%, var(--plate)) 100%);
 }
-.kt-card[data-kind="sealed"] .kt-card__body { background: var(--ink); }
-.kt-card[data-kind="sealed"] .kt-card__scrim { display: none; }
 .kt-card[data-kind="sealed"] .kt-card__img {
   object-fit: contain;
-  padding: 14% 8% 6%;
+  padding: 14% 9% 7%;
+  mix-blend-mode: multiply;
 }
+.kt-card[data-kind="sealed"] .kt-card__body { background: transparent; padding-top: 10px; }
+.kt-card[data-kind="sealed"] .kt-card__scrim { display: none; }
+.kt-card[data-kind="sealed"] .kt-card__name { color: var(--color-text); min-height: 2.36em; }
+.kt-card[data-kind="sealed"] .kt-card__meta {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--color-text-muted);
+}
+.kt-card[data-kind="sealed"] .kt-card__price { color: var(--color-text); }
+.kt-card[data-kind="sealed"] .kt-add-btn,
+.kt-card[data-kind="sealed"] .kt-add-btn:disabled { background: var(--color-text); color: var(--color-bg); }
+.kt-card[data-kind="sealed"] .kt-add-btn:hover:not(:disabled) { background: var(--color-accent); color: #fff; }
+/* Dark theme: dim the plate so it doesn't glare, keep it light enough to
+   multiply cleanly. */
+[data-theme="dark"] .kt-card[data-kind="sealed"] .kt-card__media { --plate: #e9e4dc; }
 /* Homepage "This week's pulls": taller cards so the product image gets more height. */
 #pulls .kt-card[data-kind="sealed"] { aspect-ratio: 63 / 100; }
-#pulls .kt-card[data-kind="sealed"] .kt-card__img { padding: 10% 6% 4%; }
+#pulls .kt-card[data-kind="sealed"] .kt-card__img { padding: 12% 7% 6%; }
 .kt-card[data-soldout] .kt-card__img { filter: grayscale(0.85); opacity: 0.75; }
 
 .kt-card__scrim {
