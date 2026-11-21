@@ -115,11 +115,9 @@ export async function POST(request: Request) {
   const items = [...quantityByProductId].map(([productId, quantity]) => ({ productId, quantity }));
 
   const user = await verifyUser(request);
-  // Cash on delivery is guest checkout: name, phone and address are enough —
-  // the shop calls to confirm. Signed-in shoppers still get the order on
-  // their account. FIB needs an account, because paying / retrying a payment
-  // happens on the account's order page.
-  if (!user && paymentMethod === "fib") {
+  // Every order belongs to an account (customers track it from /account), so
+  // there is no guest checkout — for cash and FIB alike.
+  if (!user) {
     return NextResponse.json({ error: "auth_required" }, { status: 401 });
   }
 

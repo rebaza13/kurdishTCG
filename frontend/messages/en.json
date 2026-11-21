@@ -190,7 +190,6 @@
     "submitError": "Something went wrong sending your request — please try again.",
     "stockError": "One of the items in your cart is out of stock — please review your cart.",
     "fibError": "FIB payment couldn't be started — please try again in a moment.",
-    "guestNote": "No account needed — just your name, phone number and address. We'll call you to confirm before delivery.",
     "signInRequired": "Sign in to pay with FIB.",
     "signInToPayTitle": "Sign in to pay with FIB",
     "signInToPayBody": "We link online payments to your account so you can track their status.",
