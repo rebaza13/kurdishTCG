@@ -692,6 +692,14 @@ h1, h2, h3, h4, h5, h6 {
 .kt-marquee__track { display: flex; width: max-content; animation: kt-marquee 36s linear infinite; }
 .kt-marquee__item { display: flex; align-items: center; gap: 28px; padding-right: 28px; font-size: clamp(26px, 3vw, 40px); font-weight: 800; letter-spacing: -0.03em; white-space: nowrap; }
 .kt-marquee__swatch { width: 14px; height: 14px; transform: rotate(45deg); flex: none; }
+/* RTL (ar/ckb): a right-anchored track slid by -50% leaves an empty gap
+   instead of looping. Keep the track itself LTR so the duplicated halves
+   line up, lay each item out RTL, and run it the other way (with reading
+   direction). */
+[dir="rtl"] .kt-marquee { direction: ltr; }
+[dir="rtl"] .kt-marquee__track { animation-direction: reverse; }
+[dir="rtl"] .kt-marquee__item { direction: rtl; padding-right: 0; padding-left: 28px; }
+:root:is([lang="ar"], [lang="ckb"]) .kt-marquee__item { letter-spacing: 0; }
 
 /* — Section chrome (shared by Franchises / Featured) — */
 .kt-section { max-width: 1320px; margin: 0 auto; padding: clamp(56px, 7vw, 110px) clamp(16px, 3.5vw, 40px) 30px; }
@@ -731,10 +739,13 @@ h1, h2, h3, h4, h5, h6 {
   transition: opacity 0.5s 0.15s, transform 0.6s 0.15s cubic-bezier(0.2, 0.85, 0.2, 1);
 }
 .kt-franchise-panel__badge { padding: 6px 10px; border-radius: 8px; font-family: var(--font-mono); font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; }
-.kt-franchise-panel__name { font-size: clamp(40px, 4vw, 58px); line-height: 0.95; font-weight: 800; letter-spacing: -0.045em; white-space: nowrap; }
+/* Wraps (balanced) instead of clipping long names like «ئەڤاتار: دوایین فەرمانڕەوای با». */
+.kt-franchise-panel__name { max-width: 100%; font-size: clamp(34px, 3.4vw, 54px); line-height: 1; font-weight: 800; letter-spacing: -0.04em; text-wrap: balance; overflow-wrap: anywhere; }
+:root:is([lang="ar"], [lang="ckb"]) .kt-franchise-panel__name { line-height: 1.2; letter-spacing: 0; }
+:root:is([lang="ar"], [lang="ckb"]) :is(.kt-franchise-panel__vert, .kt-franchise-card__name) { letter-spacing: 0; }
 .kt-franchise-panel__meta-row { display: flex; align-items: center; gap: 16px; width: 100%; justify-content: space-between; flex-wrap: wrap; }
 .kt-franchise-panel__meta { font-family: var(--font-mono); font-size: 13px; white-space: nowrap; }
-.kt-franchise-panel__cta { height: 42px; padding: 0 18px; display: flex; align-items: center; gap: 8px; border-radius: var(--radius-full); background: #fff; color: #17140f; font-weight: 700; font-size: 14px; white-space: nowrap; }
+.kt-franchise-panel__cta { max-width: 100%; overflow: hidden; text-overflow: ellipsis; height: 42px; padding: 0 18px; display: flex; align-items: center; gap: 8px; border-radius: var(--radius-full); background: #fff; color: #17140f; font-weight: 700; font-size: 14px; white-space: nowrap; }
 
 .kt-franchise-rail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 0 16px 8px; scrollbar-width: none; }
 @media (min-width: 760px) { .kt-franchise-rail { display: none; } }
@@ -1141,12 +1152,9 @@ h1, h2, h3, h4, h5, h6 {
 .kt-card__media { position: absolute; inset: 0; z-index: -3; overflow: hidden; }
 .kt-card__img { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1), filter 0.3s ease; }
 .kt-card[data-kind="single"] .kt-card__img { object-fit: cover; transform: scale(1.025); }
+/* Neutral display plate — no franchise colour cast. */
 .kt-card[data-kind="sealed"] .kt-card__media {
-  background:
-    radial-gradient(115% 75% at 50% 30%,
-      color-mix(in oklab, var(--card-accent) 5%, #fdfbf7) 0%,
-      color-mix(in oklab, var(--card-accent) 18%, #efe9df) 52%,
-      color-mix(in oklab, var(--card-accent) 60%, #2c2621) 100%);
+  background: radial-gradient(115% 75% at 50% 30%, #fbfaf8 0%, #ecebe8 55%, #c9c7c3 100%);
 }
 .kt-card[data-kind="sealed"] .kt-card__img {
   object-fit: contain;
@@ -1163,19 +1171,19 @@ h1, h2, h3, h4, h5, h6 {
   pointer-events: none;
   background:
     linear-gradient(to top,
-      rgb(11 10 9 / 0.97) 0%,
-      rgb(11 10 9 / 0.9) 30%,
-      color-mix(in srgb, var(--card-accent) 24%, rgb(11 10 9 / 0.72)) 46%,
-      color-mix(in srgb, var(--card-accent) 18%, rgb(11 10 9 / 0.3)) 58%,
-      transparent 72%);
+      rgb(11 10 9 / 0.96) 0%,
+      rgb(11 10 9 / 0.88) 30%,
+      rgb(11 10 9 / 0.62) 44%,
+      rgb(11 10 9 / 0.22) 58%,
+      transparent 70%);
 }
 .kt-card[data-kind="sealed"] .kt-card__scrim {
   background:
     linear-gradient(to top,
-      rgb(11 10 9 / 0.96) 0%,
-      rgb(11 10 9 / 0.88) 26%,
-      color-mix(in srgb, var(--card-accent) 30%, rgb(11 10 9 / 0.5)) 40%,
-      transparent 58%);
+      rgb(11 10 9 / 0.95) 0%,
+      rgb(11 10 9 / 0.86) 26%,
+      rgb(11 10 9 / 0.4) 40%,
+      transparent 54%);
 }
 
 .kt-card__glare,
@@ -1332,8 +1340,8 @@ h1, h2, h3, h4, h5, h6 {
   .kt-card:hover {
     transform: perspective(1000px) translateY(-6px) rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg));
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--card-accent) 45%, transparent),
-      0 26px 44px -22px color-mix(in srgb, var(--card-accent) 55%, var(--color-shadow));
+      0 0 0 1px var(--color-border-strong),
+      0 26px 44px -22px var(--color-shadow);
   }
   .kt-card[data-foil]:hover {
     box-shadow:
@@ -1406,11 +1414,7 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
   border-radius: var(--radius-lg);
   color: #fff;
-  background:
-    radial-gradient(110% 70% at 50% 30%,
-      color-mix(in oklab, var(--card-accent) 8%, #fdfbf7) 0%,
-      color-mix(in oklab, var(--card-accent) 30%, #efe9df) 45%,
-      color-mix(in oklab, var(--card-accent) 85%, #1c1814) 100%);
+  background: radial-gradient(110% 70% at 50% 30%, #fbfaf8 0%, #ecebe8 50%, #c9c7c3 100%);
   box-shadow: 0 0 0 1px var(--color-border);
   transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.35s ease;
 }
@@ -1430,8 +1434,8 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(to top,
     rgb(11 10 9 / 0.95) 0%,
     rgb(11 10 9 / 0.82) 22%,
-    color-mix(in srgb, var(--card-accent) 45%, rgb(11 10 9 / 0.4)) 40%,
-    transparent 60%);
+    rgb(11 10 9 / 0.4) 40%,
+    transparent 56%);
 }
 .kt-ftile__badge {
   position: absolute;
@@ -1484,7 +1488,7 @@ h1, h2, h3, h4, h5, h6 {
 .kt-ftile:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 3px; }
 @media (min-width: 640px) { .kt-ftile__body { padding: 20px; gap: 8px; } .kt-ftile__meta { font-size: 12px; } }
 @media (hover: hover) and (prefers-reduced-motion: no-preference) {
-  .kt-ftile:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px color-mix(in srgb, var(--card-accent) 50%, transparent), 0 28px 48px -24px color-mix(in srgb, var(--card-accent) 60%, var(--color-shadow)); }
+  .kt-ftile:hover { transform: translateY(-6px); box-shadow: 0 0 0 1px var(--color-border-strong), 0 28px 48px -24px var(--color-shadow); }
   .kt-ftile:hover .kt-ftile__img { transform: scale(1.06) translateY(-2%); }
   .kt-ftile:hover .kt-ftile__go { background: var(--card-accent); color: #fff; transform: translateX(3px); }
   [dir="rtl"] .kt-ftile:hover .kt-ftile__go { transform: translateX(-3px); }
@@ -1605,9 +1609,7 @@ h1, h2, h3, h4, h5, h6 {
   position: relative;
   padding: 18px 12% 14px;
   border-radius: calc(var(--radius-md) - 4px);
-  background:
-    radial-gradient(90% 70% at 50% 35%, color-mix(in oklab, var(--card-accent) 18%, transparent), transparent 70%),
-    var(--color-chip);
+  background: var(--color-chip);
 }
 .kt-lcard__flip { z-index: 2; }
 .kt-lcard__placeholder {
@@ -1665,8 +1667,8 @@ h1, h2, h3, h4, h5, h6 {
   .kt-lcard:hover {
     transform: translateY(-5px);
     box-shadow:
-      0 0 0 1px color-mix(in srgb, var(--card-accent) 45%, transparent),
-      0 26px 44px -24px color-mix(in srgb, var(--card-accent) 55%, var(--color-shadow));
+      0 0 0 1px var(--color-border-strong),
+      0 26px 44px -24px var(--color-shadow);
   }
   .kt-lcard:hover .kt-lcard__fan[data-i="0"] { transform: rotate(-13deg) translateX(-20%) translateY(-2%); }
   .kt-lcard:hover .kt-lcard__fan[data-i="1"] { transform: rotate(13deg) translateX(20%) translateY(-2%); }

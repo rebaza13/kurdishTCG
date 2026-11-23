@@ -44,7 +44,7 @@ export function FranchiseAccordion({ franchises }: { franchises: Franchise[] }) 
                 src={f.image}
                 alt={f.name}
                 fill
-                sizes="(max-width: 1320px) 20vw, 260px"
+                sizes="(max-width: 1320px) 45vw, 600px"
                 className="object-cover"
                 style={{ transform: `scale(${on ? 1.02 : 1.14})` }}
               />
