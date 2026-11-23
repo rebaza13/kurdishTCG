@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "sbahhcottihywlmaglvn.supabase.co" },
+      // Franchise art uploaded through the dashboard to Cloudflare R2.
+      { protocol: "https", hostname: "pub-b7fec24279c14c088e36e18e21ddf97c.r2.dev" },
     ],
   },
 };

@@ -1480,3 +1480,370 @@ h1, h2, h3, h4, h5, h6 {
   .kt-card__chip:has(+ .kt-card__tag) { padding: 7px; }
   .kt-card__chip:has(+ .kt-card__tag) > :not(.kt-card__swatch) { display: none; }
 }
+
+/* ————————————————————————————————————————————————————————————————
+   Community marketplace: flip cards (kt-flip), listing tiles (kt-lcard),
+   the governorate map (kt-map), and the sell/order forms (kt-mk-*).
+   ———————————————————————————————————————————————————————————————— */
+
+/* Flip card — 3D turn to the back on hover (mouse) or via the corner button. */
+.kt-flip {
+  --tx: 0deg;
+  --ty: 0deg;
+  position: relative;
+  aspect-ratio: 63 / 88;
+  perspective: 1200px;
+  border-radius: var(--radius-sm);
+}
+.kt-flip__inner {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+  transform: rotateX(var(--tx)) rotateY(var(--ty));
+  transition: transform 0.7s cubic-bezier(0.2, 0.85, 0.25, 1.15);
+  border-radius: inherit;
+}
+.kt-flip[data-flipped] .kt-flip__inner { transform: rotateX(var(--tx)) rotateY(calc(180deg + var(--ty))); }
+.kt-flip__face {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  background: #0b0a09;
+  box-shadow: 0 0 0 1px var(--color-border), 0 18px 34px -20px var(--color-shadow);
+}
+.kt-flip__face--back { transform: rotateY(180deg); }
+.kt-flip__img { object-fit: cover; }
+.kt-flip__shine {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s;
+  background: radial-gradient(circle at var(--sx, 50%) var(--sy, 30%), rgb(255 255 255 / 0.38), transparent 46%);
+  mix-blend-mode: soft-light;
+}
+.kt-flip__btn {
+  position: absolute;
+  z-index: 3;
+  inset-inline-end: 8px;
+  bottom: 8px;
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  color: #fff;
+  background: rgb(11 10 9 / 0.62);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.18);
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.kt-flip__btn:hover { background: var(--color-accent); }
+.kt-flip__btn svg { transition: transform 0.4s; }
+.kt-flip[data-flipped] .kt-flip__btn svg { transform: rotate(-180deg); }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kt-flip[data-hover-flip]:hover .kt-flip__inner { transform: rotateX(var(--tx)) rotateY(calc(180deg + var(--ty))); }
+  .kt-flip[data-hover-flip][data-flipped]:hover .kt-flip__inner { transform: rotateX(var(--tx)) rotateY(var(--ty)); }
+  .kt-flip:hover .kt-flip__shine { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .kt-flip__inner { transition: none; }
+}
+
+/* Listing tile */
+.kt-lcard {
+  --card-accent: var(--color-accent);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+  padding: 10px 10px 14px;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border), 0 10px 24px -20px var(--color-shadow);
+  transition: transform 0.45s cubic-bezier(0.23, 1, 0.32, 1), box-shadow 0.35s ease;
+  animation: kt-rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.kt-lcard__stage {
+  position: relative;
+  padding: 18px 12% 14px;
+  border-radius: calc(var(--radius-md) - 4px);
+  background:
+    radial-gradient(90% 70% at 50% 35%, color-mix(in oklab, var(--card-accent) 18%, transparent), transparent 70%),
+    var(--color-chip);
+}
+.kt-lcard__flip { z-index: 2; }
+.kt-lcard__placeholder {
+  border: 2px dashed var(--color-border);
+  background: var(--color-bg);
+}
+.kt-lcard__fan {
+  position: absolute;
+  z-index: 1;
+  inset: 18px 12% 14px;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 0 0 1px var(--color-border), 0 10px 20px -14px var(--color-shadow);
+  transform-origin: 50% 100%;
+  transition: transform 0.5s cubic-bezier(0.2, 0.85, 0.25, 1.15);
+  filter: brightness(0.82);
+}
+.kt-lcard__fan[data-i="0"] { transform: rotate(-7deg) translateX(-9%); }
+.kt-lcard__fan[data-i="1"] { transform: rotate(7deg) translateX(9%); }
+.kt-lcard__kind,
+.kt-lcard__sold {
+  position: absolute;
+  z-index: 3;
+  top: 8px;
+  inset-inline-start: 8px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-text);
+  background: var(--color-glass);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+:root[lang="ar"] .kt-lcard__kind,
+:root[lang="ckb"] .kt-lcard__kind { font-family: var(--font-body); letter-spacing: 0; font-size: 11.5px; }
+.kt-lcard[data-kind="bundle"] .kt-lcard__kind { color: var(--color-accent-ink); background: var(--color-accent); box-shadow: none; }
+.kt-lcard__sold { inset-inline-start: auto; inset-inline-end: 8px; color: #fff; background: #17140f; }
+.kt-lcard[data-sold] .kt-flip__img { filter: grayscale(0.9); opacity: 0.7; }
+.kt-lcard__body { display: flex; flex-direction: column; gap: 6px; padding-inline: 4px; min-width: 0; }
+.kt-lcard__title { font-size: 15px; line-height: 1.3; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.kt-lcard__link::after { content: ""; position: absolute; inset: 0; z-index: 1; border-radius: var(--radius-md); }
+.kt-lcard__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-size: 12px; color: var(--color-text-muted); }
+.kt-lcard__city { display: inline-flex; align-items: center; gap: 4px; color: var(--color-text); }
+.kt-lcard__city svg { color: var(--color-accent); }
+.kt-lcard__footer { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 2px; }
+.kt-lcard__price { font-family: var(--font-mono); font-weight: 700; font-size: 15px; }
+.kt-lcard__footer > :not(.kt-lcard__price) { position: relative; z-index: 2; }
+/* The flip button sits above the stretched link so a tap flips instead of navigating. */
+.kt-lcard .kt-flip__btn { z-index: 4; }
+@media (hover: hover) and (prefers-reduced-motion: no-preference) {
+  .kt-lcard:hover {
+    transform: translateY(-5px);
+    box-shadow:
+      0 0 0 1px color-mix(in srgb, var(--card-accent) 45%, transparent),
+      0 26px 44px -24px color-mix(in srgb, var(--card-accent) 55%, var(--color-shadow));
+  }
+  .kt-lcard:hover .kt-lcard__fan[data-i="0"] { transform: rotate(-13deg) translateX(-20%) translateY(-2%); }
+  .kt-lcard:hover .kt-lcard__fan[data-i="1"] { transform: rotate(13deg) translateX(20%) translateY(-2%); }
+  /* Hovering anywhere on the tile turns the cover card over. */
+  .kt-lcard:hover .kt-flip[data-hover-flip] .kt-flip__inner { transform: rotateY(180deg); }
+}
+@media (prefers-reduced-motion: reduce) { .kt-lcard { animation: none; } }
+.kt-lcard-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+@media (min-width: 640px) { .kt-lcard-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 18px; } }
+
+/* Governorate map. The stage is aspect-locked to the SVG viewBox, so the
+   HTML labels/pins can be placed by percentage over it. */
+.kt-map { position: relative; display: flex; flex-direction: column; gap: 12px; }
+.kt-map__frame {
+  position: relative;
+  padding: clamp(14px, 4%, 28px);
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-text) 12%, transparent) 1px, transparent 1.5px) 0 0 / 18px 18px,
+    radial-gradient(80% 70% at 50% 40%, color-mix(in oklab, var(--color-accent) 8%, transparent), transparent 75%),
+    var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border);
+  transition: box-shadow 0.2s;
+}
+.kt-map[data-invalid] .kt-map__frame { box-shadow: 0 0 0 2px var(--color-accent); }
+.kt-map__stage { position: relative; width: 100%; direction: ltr; }
+.kt-map__svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+.kt-map__region {
+  fill: color-mix(in oklab, var(--color-text) 9%, var(--color-surface));
+  stroke: var(--color-surface);
+  stroke-width: calc(1.4px * var(--map-scale, 1));
+  stroke-linejoin: round;
+  cursor: pointer;
+  outline: none;
+  transition: fill 0.25s ease;
+  animation: kt-map-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: calc(var(--i) * 28ms);
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.kt-map__svg[role="img"] .kt-map__region { cursor: default; }
+.kt-map__region[data-origin] { fill: color-mix(in oklab, var(--color-text) 22%, var(--color-surface)); }
+.kt-map__region[data-hovered]:not([data-selected]) { fill: color-mix(in oklab, var(--color-accent) 22%, var(--color-surface)); }
+.kt-map__region[data-selected] { fill: color-mix(in oklab, var(--color-accent) 34%, var(--color-surface)); }
+.kt-map__outline {
+  fill: none;
+  stroke: var(--color-accent);
+  stroke-width: calc(2.2px * var(--map-scale, 1));
+  stroke-linejoin: round;
+  pointer-events: none;
+  animation: kt-map-trace 0.45s ease-out;
+}
+.kt-map__outline[data-selected] { stroke-width: calc(2.8px * var(--map-scale, 1)); }
+.kt-map__dot { fill: color-mix(in srgb, var(--color-text) 32%, transparent); pointer-events: none; transition: fill 0.2s; }
+.kt-map__dot[data-on] { fill: #fff; }
+.kt-map__route-shadow { fill: none; stroke: color-mix(in srgb, var(--color-surface) 80%, transparent); stroke-width: calc(5px * var(--map-scale, 1)); stroke-linecap: round; }
+.kt-map__route-line {
+  fill: none;
+  stroke: var(--color-text);
+  stroke-width: calc(2px * var(--map-scale, 1));
+  stroke-linecap: round;
+  stroke-dasharray: calc(6px * var(--map-scale, 1)) calc(5px * var(--map-scale, 1));
+  animation: kt-map-march 1.1s linear infinite;
+}
+.kt-map__labels { position: absolute; inset: 0; pointer-events: none; }
+.kt-map__label {
+  position: absolute;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.3;
+  white-space: nowrap;
+  color: var(--color-text);
+  background: var(--color-glass);
+  backdrop-filter: blur(8px);
+  box-shadow: 0 0 0 1px var(--color-border), 0 8px 18px -10px var(--color-shadow);
+  opacity: 0;
+  translate: -50% calc(-100% - 6px);
+  scale: 0.85;
+  transform-origin: 50% 100%;
+  transition: opacity 0.18s ease, scale 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.4), translate 0.32s cubic-bezier(0.2, 0.9, 0.3, 1.4);
+}
+:root[lang="ar"] .kt-map__label,
+:root[lang="ckb"] .kt-map__label { direction: rtl; font-size: 12.5px; }
+.kt-map__label[data-state] { opacity: 1; scale: 1; translate: -50% calc(-100% - 9px); }
+.kt-map__label[data-state="selected"] { z-index: 3; color: var(--color-accent-ink); background: var(--color-accent); box-shadow: 0 10px 22px -10px color-mix(in srgb, var(--color-accent) 80%, transparent); }
+.kt-map__label[data-state="hover"] { z-index: 4; }
+.kt-map__label[data-state="origin"] { z-index: 2; color: var(--color-bg); background: var(--color-text); }
+.kt-map__pin,
+.kt-map__ping {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  translate: -50% -50%;
+  border-radius: 999px;
+  pointer-events: none;
+}
+.kt-map__pin { background: var(--color-text); box-shadow: 0 0 0 3px var(--color-surface); }
+.kt-map__ping { background: var(--color-accent); box-shadow: 0 0 0 3px var(--color-surface); }
+.kt-map__ping::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: inherit;
+  border: 2px solid var(--color-accent);
+  animation: kt-map-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+.kt-map__caption { display: flex; align-items: center; gap: 8px; min-height: 24px; font-size: 14px; }
+.kt-map__caption svg { color: var(--color-accent); }
+.kt-map__scope {
+  position: absolute;
+  z-index: 5;
+  top: 10px;
+  inset-inline-end: 10px;
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--color-glass);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 0 0 1px var(--color-border);
+}
+.kt-map__scope button { padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; transition: background 0.2s, color 0.2s; }
+.kt-map__scope button[aria-pressed="true"] { color: var(--color-accent-ink); background: var(--color-accent); }
+
+@keyframes kt-map-in { from { opacity: 0; transform: scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes kt-map-trace { from { stroke-opacity: 0; } to { stroke-opacity: 1; } }
+@keyframes kt-map-march { to { stroke-dashoffset: calc(-22px * var(--map-scale, 1)); } }
+@keyframes kt-map-ping { 75%, 100% { transform: scale(2.4); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .kt-map__region, .kt-map__outline, .kt-map__route-line, .kt-map__ping::after { animation: none; }
+  .kt-map__label { transition: opacity 0.15s; }
+}
+
+/* Marketplace forms + panels */
+.kt-mk-panel {
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  box-shadow: 0 0 0 1px var(--color-border), 0 18px 40px -32px var(--color-shadow);
+}
+.kt-mk-input {
+  width: 100%;
+  border: 1px solid var(--color-border);
+  background: var(--color-bg);
+  padding: 11px 13px;
+  font-size: 16px;
+  border-radius: var(--radius-xs);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+@media (min-width: 768px) { .kt-mk-input { font-size: 14px; } }
+.kt-mk-input:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-accent) 18%, transparent); }
+.kt-mk-input[aria-invalid="true"] { border-color: var(--color-accent); }
+.kt-mk-input::placeholder { color: var(--color-text-muted); }
+.kt-mk-choice {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  box-shadow: 0 0 0 1px var(--color-border);
+  cursor: pointer;
+  text-align: start;
+  transition: box-shadow 0.2s, background 0.2s;
+}
+.kt-mk-choice:hover { box-shadow: 0 0 0 1px var(--color-border-strong); }
+.kt-mk-choice[aria-checked="true"],
+.kt-mk-choice[aria-pressed="true"] {
+  background: color-mix(in oklab, var(--color-accent) 8%, var(--color-bg));
+  box-shadow: 0 0 0 2px var(--color-accent);
+}
+.kt-mk-tabs { display: inline-flex; max-width: 100%; overflow-x: auto; gap: 4px; padding: 4px; border-radius: 999px; background: var(--color-chip); scrollbar-width: none; }
+.kt-mk-tabs button,
+.kt-mk-tabs a { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border-radius: 999px; font-size: 14px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; transition: background 0.2s, color 0.2s; white-space: nowrap; }
+.kt-mk-tabs [aria-selected="true"],
+.kt-mk-tabs [aria-current="page"] { color: var(--color-text); background: var(--color-surface); box-shadow: 0 2px 8px -4px var(--color-shadow); }
+.kt-mk-badge { display: inline-flex; min-width: 20px; height: 20px; padding: 0 6px; align-items: center; justify-content: center; border-radius: 999px; font-size: 11px; font-family: var(--font-mono); color: var(--color-accent-ink); background: var(--color-accent); }
+.kt-mk-drop {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 63 / 88;
+  overflow: hidden;
+  border-radius: var(--radius-sm);
+  border: 1.5px dashed color-mix(in srgb, var(--color-text) 25%, transparent);
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, color 0.2s;
+}
+.kt-mk-drop:hover,
+.kt-mk-drop:focus-within,
+.kt-mk-drop[data-over] { border-color: var(--color-accent); color: var(--color-accent); background: color-mix(in oklab, var(--color-accent) 6%, var(--color-bg)); }
+.kt-mk-drop[data-filled] { border-style: solid; border-color: transparent; }
+.kt-mk-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.kt-mk-status { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; background: var(--color-chip); }
+.kt-mk-status::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: currentColor; }
+.kt-mk-status[data-status="requested"] { color: #b26a00; }
+.kt-mk-status[data-status="confirmed"] { color: var(--color-accent-secondary); }
+.kt-mk-status[data-status="shipped"] { color: #7b3fe4; }
+.kt-mk-status[data-status="delivered"],
+.kt-mk-status[data-status="active"] { color: var(--color-accent-tertiary); }
+.kt-mk-status[data-status="cancelled"],
+.kt-mk-status[data-status="paused"],
+.kt-mk-status[data-status="sold"] { color: var(--color-text-muted); }
+:root[data-theme="dark"] .kt-mk-status[data-status="requested"] { color: #ffb547; }
+:root[data-theme="dark"] .kt-mk-status[data-status="shipped"] { color: #c792ff; }

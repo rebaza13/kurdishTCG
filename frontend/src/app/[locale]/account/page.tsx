@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import { useSupabaseUser } from "@/lib/use-supabase-user";
+import { BuyerOrders } from "@/components/market/buyer-orders";
 import { statusPillClass } from "./order-status";
 
 type OrderRow = {
@@ -242,6 +243,8 @@ export default function AccountPage() {
             </ul>
           )}
         </section>
+
+        <BuyerOrders userId={user.id} />
       </div>
     );
   }

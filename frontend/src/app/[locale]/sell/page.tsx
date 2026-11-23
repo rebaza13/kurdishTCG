@@ -1,23 +1,23 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import { Button } from "@/components/ui/button";
+import { SellerHub, type HubTab } from "@/components/market/seller-hub";
 import type { Locale } from "@/i18n/routing";
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "seller" });
+  return { title: t("kicker"), description: t("body") };
+}
 
 export default async function SellPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ locale: Locale }>;
+  searchParams: Promise<{ tab?: string }>;
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("sell");
-
-  return (
-    <div className="px-4 py-24 md:px-10 flex flex-col items-center text-center gap-4 max-w-[60ch] mx-auto">
-      <h1 className="text-3xl md:text-5xl">{t("title")}</h1>
-      <p className="text-sm text-[var(--color-text-muted)]">{t("body")}</p>
-      <Button size="lg" disabled>
-        {t("comingSoon")}
-      </Button>
-    </div>
-  );
+  const { tab } = await searchParams;
+  const initialTab: HubTab = tab === "orders" || tab === "profile" ? tab : "listings";
+  return <SellerHub initialTab={initialTab} />;
 }

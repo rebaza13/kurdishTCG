@@ -10,8 +10,8 @@ import { CartButton, CartDrawer } from "@/components/cart-drawer";
 
 const NAV_ITEMS = [
   { href: "/franchises", key: "franchises" },
-  { href: "/search", key: "newArrivals" },
-  { href: "/sell", key: "sellToUs" },
+  { href: "/market", key: "market" },
+  { href: "/sell", key: "sell" },
 ] as const;
 
 export function Header() {

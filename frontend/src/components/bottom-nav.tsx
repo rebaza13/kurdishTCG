@@ -4,11 +4,11 @@ import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
 import { useCartCount, useCartStore } from "@/lib/cart-store";
 
-type Tab = { href: string; key: "home" | "shop" | "search" | "account" };
+type Tab = { href: string; key: "market" | "shop" | "search" | "account" };
 
 const LEFT_TABS: Tab[] = [
-  { href: "/", key: "home" },
   { href: "/franchises", key: "shop" },
+  { href: "/market", key: "market" },
 ];
 const RIGHT_TABS: Tab[] = [
   { href: "/search", key: "search" },
@@ -61,9 +61,11 @@ function NavTab({ href, label, active, icon }: { href: string; label: string; ac
 }
 
 const ICONS: Record<Tab["key"], React.ReactNode> = {
-  home: (
+  market: (
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-      <path d="M4 10.5 12 4l8 6.5V20h-5v-6H9v6H4z" />
+      <path d="M4 9.5 5.5 4h13L20 9.5" />
+      <path d="M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0" />
+      <path d="M5.5 12.5V20h13v-7.5M10 20v-4.5h4V20" />
     </svg>
   ),
   shop: (
