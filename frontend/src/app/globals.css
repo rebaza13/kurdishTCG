@@ -442,6 +442,38 @@ h1, h2, h3, h4, h5, h6 {
 .kt-hero__title span:nth-child(2) { animation-delay: 0.05s; }
 .kt-hero__title-pull { animation-delay: 0.15s !important; display: flex !important; align-items: center; gap: 0.18em; }
 .kt-hero__title-accent { color: var(--color-accent); }
+
+/* Arabic script (ar, ckb): the Latin hero settings break it. Negative
+   tracking pulls joined letters apart, 0.9 leading makes the dots of one
+   line hit the next, and Sorani words like «گەورەترین» are far wider than
+   their English counterparts at 124px — they ran under the pack stage.
+   Smaller, looser, and allowed to wrap inside the column. */
+:root[lang="ar"] .kt-hero__title,
+:root[lang="ckb"] .kt-hero__title {
+  font-size: clamp(44px, 11vw, 60px);
+  line-height: 1.18;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 420px) {
+  :root[lang="ar"] .kt-hero__title,
+  :root[lang="ckb"] .kt-hero__title { font-size: clamp(52px, 5.4vw, 92px); }
+}
+:root[lang="ar"] .kt-hero__title-pull,
+:root[lang="ckb"] .kt-hero__title-pull { flex-wrap: wrap; row-gap: 0; }
+:root[lang="ar"] .kt-hero__title-pull > .kt-hero__title-accent,
+:root[lang="ckb"] .kt-hero__title-pull > .kt-hero__title-accent { min-width: 0; }
+
+/* Letter-spaced mono labels (kickers, eyebrows, badges) disconnect Arabic
+   script letters — set them in the body face with normal tracking. */
+:root:is([lang="ar"], [lang="ckb"]) :is(
+  .kt-hero__kicker, .kt-stage__hint, .kt-eyebrow, .kt-franchise-panel__badge,
+  .kt-franchise-card__badge, .kt-newsletter__eyebrow, .kt-footer__col-label,
+  [class*="tracking-"]
+) {
+  font-family: var(--font-body);
+  letter-spacing: 0;
+}
 .kt-hero__foil-chip {
   display: inline-block;
   width: 0.62em;
