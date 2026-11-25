@@ -61,6 +61,8 @@ type ProductRow = {
   images: string[] | null;
   stock: number;
   bundle_items: unknown;
+  seller_id?: string | null;
+  seller_name?: string | null;
   created_at: string;
 };
 
@@ -116,6 +118,7 @@ function mapProductRow(row: ProductRow, locale: Locale): Product {
     description: pick(row, "description", locale),
     stock: row.stock,
     bundleItems: parseBundleItems(row.bundle_items),
+    sellerName: row.seller_id ? row.seller_name || "—" : null,
     createdAt: row.created_at,
   };
 }

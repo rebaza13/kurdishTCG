@@ -51,7 +51,7 @@ export default async function LocaleLayout({
 
   // Client components only: drop namespaces that are rendered purely on the server.
   const messages = (await getMessages()) as Record<string, unknown>;
-  const SERVER_ONLY = ["meta", "sell", "aboutPage", "contactPage", "shippingPage", "returnsPage", "faqPage"];
+  const SERVER_ONLY = ["meta", "aboutPage", "contactPage", "shippingPage", "returnsPage", "faqPage"];
   const clientMessages = Object.fromEntries(Object.entries(messages).filter(([k]) => !SERVER_ONLY.includes(k)));
 
   return (

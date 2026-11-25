@@ -4,6 +4,7 @@ import { verifyUser } from "@/lib/supabase/verify-user";
 import { normalizeIraqiMobile } from "@/lib/phone";
 import { cancelFibPayment, createFibPayment, FibPayError } from "@/lib/fib";
 import { notifyNewOrder } from "@/lib/telegram";
+import { notifySellersOfOrder } from "@/lib/whatsapp";
 import { rateLimit } from "@/lib/rate-limit";
 import { isGovernorate } from "@/lib/governorates";
 import { FIB_ENABLED } from "@/lib/features";
@@ -135,10 +136,19 @@ export async function POST(request: Request) {
   const ids = [...new Set(items.map((i) => i.productId))];
   const { data: products, error: productsError } = await admin
     .from("products")
-    .select("id, name_en, name_ar, name_ckb, price, stock")
+    .select("id, name_en, name_ar, name_ckb, price, stock, image, seller_id, seller_name")
     .in("id", ids);
   if (productsError) {
     return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
+
+  // Marketplace listings: snapshot each seller's WhatsApp number onto the
+  // order lines so the buyer can reach them (profiles aren't public).
+  const sellerIds = [...new Set((products ?? []).map((p) => p.seller_id).filter(Boolean))] as string[];
+  const whatsappBySeller = new Map<string, string | null>();
+  if (sellerIds.length) {
+    const { data: sellers } = await admin.from("profiles").select("id, whatsapp").in("id", sellerIds);
+    for (const s of sellers ?? []) whatsappBySeller.set(s.id, s.whatsapp ?? null);
   }
 
   const byId = new Map((products ?? []).map((p) => [p.id, p]));
@@ -148,6 +158,10 @@ export async function POST(request: Request) {
     product_name: string;
     quantity: number;
     unit_price: number;
+    product_image: string | null;
+    seller_id: string | null;
+    seller_name: string | null;
+    seller_whatsapp: string | null;
   }[] = [];
 
   for (const item of items) {
@@ -157,6 +171,9 @@ export async function POST(request: Request) {
         { error: "product_unavailable", productId: item.productId },
         { status: 409 }
       );
+    }
+    if (product.seller_id && product.seller_id === user.id) {
+      return NextResponse.json({ error: "own_listing", productId: item.productId }, { status: 409 });
     }
     if (product.stock < item.quantity) {
       return NextResponse.json(
@@ -171,6 +188,10 @@ export async function POST(request: Request) {
       product_name: pickName(product, locale),
       quantity: item.quantity,
       unit_price: unitPrice,
+      product_image: product.image ?? null,
+      seller_id: product.seller_id ?? null,
+      seller_name: product.seller_id ? product.seller_name ?? null : null,
+      seller_whatsapp: product.seller_id ? whatsappBySeller.get(product.seller_id) ?? null : null,
     });
   }
 
@@ -260,7 +281,7 @@ export async function POST(request: Request) {
     return itemsErrorResponse(admin, itemsError);
   }
 
-  after(() => notifyNewOrder(orderId));
+  after(() => Promise.all([notifyNewOrder(orderId), notifySellersOfOrder(orderId)]));
   return NextResponse.json({ orderId });
 }
 

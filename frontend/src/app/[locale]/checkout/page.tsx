@@ -166,6 +166,9 @@ export default function CheckoutPage() {
         } else if (data.error === "product_unavailable") {
           removeItem(data.productId);
           setError(t("stockError"));
+        } else if (data.error === "own_listing") {
+          removeItem(data.productId);
+          setError(t("ownListing"));
         } else if (data.error === "invalid_phone") {
           setPhoneError(t("phoneInvalid"));
         } else if (data.error === "missing_fields" || data.error === "field_too_long") {

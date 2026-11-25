@@ -82,6 +82,8 @@ export interface Product {
   stock: number;
   /** Display-only "also included" list; empty for ordinary products. */
   bundleItems?: BundleItem[];
+  /** Set when a customer listed this (marketplace); null/undefined = the shop's own stock. */
+  sellerName?: string | null;
   createdAt?: string;
 }
 

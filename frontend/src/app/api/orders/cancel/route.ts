@@ -42,6 +42,15 @@ export async function POST(request: Request) {
   if (order.status !== "requested") {
     return NextResponse.json({ error: "not_cancellable" }, { status: 409 });
   }
+  // A marketplace seller already confirmed they were paid — too late to cancel.
+  const { count: paidLines } = await admin
+    .from("order_items")
+    .select("id", { count: "exact", head: true })
+    .eq("order_id", orderId)
+    .not("seller_paid_at", "is", null);
+  if (paidLines) {
+    return NextResponse.json({ error: "not_cancellable" }, { status: 409 });
+  }
 
   // Compare-and-set on status so a concurrent confirm by the shop wins.
   const { data: updated, error: updateError } = await admin

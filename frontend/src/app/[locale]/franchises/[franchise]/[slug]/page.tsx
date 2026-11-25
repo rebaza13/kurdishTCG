@@ -164,6 +164,7 @@ export default async function ProductDetailPage({
             {product.cardNumber && <Field label={t("cardNumber")} value={product.cardNumber} />}
             <Field label={t("condition")} value={conditionLabel(product.condition, t)} />
             {product.grade && <Field label={t("grade")} value={product.grade} />}
+            {product.sellerName && <Field label={t("soldBy")} value={product.sellerName} />}
           </dl>
 
           <div className="flex items-center gap-2 text-sm">

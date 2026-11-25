@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Image from "next/image";
 import { useParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowLeft, Loader2, Package, RefreshCw } from "lucide-react";
+import { ArrowLeft, Check, Loader2, MessageCircle, Package, RefreshCw } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
@@ -13,6 +13,7 @@ import { getSupabaseClient } from "@/lib/supabase/client";
 import { getAccessToken, useSupabaseUser } from "@/lib/use-supabase-user";
 import type { Locale } from "@/i18n/routing";
 import { statusPillClass } from "../../order-status";
+import { whatsappLink } from "@/lib/phone";
 
 interface OrderDetail {
   id: string;
@@ -38,6 +39,12 @@ interface OrderDetail {
     product_name: string;
     quantity: number;
     unit_price: number;
+    product_image: string | null;
+    seller_id: string | null;
+    seller_name: string | null;
+    seller_whatsapp: string | null;
+    seller_paid_at: string | null;
+    buyer_received_at: string | null;
     /** Joined live product (null if it was deleted since) — for the photo and link. */
     products: { slug: string; franchise_slug: string; image: string | null } | null;
   }[];
@@ -67,6 +74,7 @@ export default function OrderDetailPage() {
   const [fibPayment, setFibPayment] = useState<FibPaymentInfo | null>(null);
   const [cancelStep, setCancelStep] = useState<"idle" | "confirm" | "busy">("idle");
   const [cancelFailed, setCancelFailed] = useState(false);
+  const [receiving, setReceiving] = useState<{ sellerId: string; step: "confirm" | "busy" } | null>(null);
 
   const load = useCallback(async () => {
     const supabase = getSupabaseClient();
@@ -158,6 +166,22 @@ export default function OrderDetailPage() {
       setCancelFailed(true);
       setCancelStep("idle");
       await load(); // the shop may have confirmed it meanwhile — show the real status
+    }
+  }
+
+  async function handleReceived(sellerId: string) {
+    if (!order) return;
+    setReceiving({ sellerId, step: "busy" });
+    try {
+      const token = await getAccessToken();
+      await fetch("/api/orders/confirm", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ orderId: order.id, role: "buyer", sellerId }),
+      });
+    } finally {
+      setReceiving(null);
+      await load();
     }
   }
 
@@ -275,8 +299,8 @@ export default function OrderDetailPage() {
           const href = product ? `/franchises/${product.franchise_slug}/${product.slug}` : null;
           const thumb = (
             <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded-[var(--radius-xs)] bg-[var(--color-neutral-200)]">
-              {product?.image ? (
-                <Image src={product.image} alt={item.product_name} fill sizes="64px" className="object-cover" />
+              {product?.image || item.product_image ? (
+                <Image src={(product?.image || item.product_image)!} alt={item.product_name} fill sizes="64px" className="object-cover" />
               ) : (
                 <Package className="absolute inset-0 m-auto size-6 text-[var(--color-text-muted)]" aria-hidden />
               )}
@@ -311,6 +335,64 @@ export default function OrderDetailPage() {
           );
         })}
       </div>
+
+      {order.status !== "cancelled" &&
+        sellerGroups(order.order_items).map((g) => {
+          const ref = `#${order.id.slice(0, 8).toUpperCase()}`;
+          const items = g.items.map((i) => `${i.quantity} × ${i.product_name}`).join(", ");
+          const received = g.items.every((i) => i.buyer_received_at);
+          const paid = g.items.every((i) => i.seller_paid_at);
+          const busy = receiving?.sellerId === g.sellerId && receiving.step === "busy";
+          return (
+            <div
+              key={g.sellerId}
+              className="flex flex-col gap-3 rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-5 text-sm"
+            >
+              <h2 className="text-sm font-heading font-[var(--font-heading-weight)]">
+                {t("soldBy", { name: g.name ?? "—" })}
+              </h2>
+              <p className="text-xs text-[var(--color-text-muted)]">{t("sellerNote")}</p>
+              <p className="text-xs text-[var(--color-text-muted)]">{items}</p>
+              <div className="flex flex-wrap items-center gap-3">
+                {g.whatsapp && (
+                  <Button asChild variant="secondary" size="sm">
+                    <a
+                      href={whatsappLink(g.whatsapp, t("waToSeller", { name: g.name ?? "", items, ref }))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <MessageCircle className="size-3.5" />
+                      {t("contactSeller")}
+                    </a>
+                  </Button>
+                )}
+                {received ? (
+                  <span className="inline-flex items-center gap-1.5 text-xs text-[var(--color-accent-secondary)]">
+                    <Check className="size-3.5" /> {t("receivedDone")}
+                  </span>
+                ) : receiving?.sellerId === g.sellerId ? (
+                  <div className="flex flex-wrap items-center gap-2" role="alertdialog" aria-label={t("markReceived")}>
+                    <span className="text-xs">{t("receivedPrompt")}</span>
+                    <Button size="sm" onClick={() => handleReceived(g.sellerId)} disabled={busy}>
+                      {busy ? <Loader2 className="size-3.5 animate-spin" /> : <Check className="size-3.5" />}
+                      {t("markReceived")}
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setReceiving(null)} disabled={busy}>
+                      {t("cancelKeep")}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button size="sm" onClick={() => setReceiving({ sellerId: g.sellerId, step: "confirm" })}>
+                    {t("markReceived")}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-[var(--color-text-muted)]">
+                {paid ? t("sellerPaid") : t("sellerWaiting")}
+              </p>
+            </div>
+          );
+        })}
 
       <div className="flex items-center justify-between">
         <span className="font-heading font-[var(--font-heading-weight)]">{checkoutT("total")}</span>
@@ -443,4 +525,24 @@ export default function OrderDetailPage() {
       )}
     </div>
   );
+}
+
+/** Order lines sold by marketplace sellers, grouped per seller. */
+function sellerGroups(items: OrderDetail["order_items"]) {
+  const groups = new Map<
+    string,
+    { sellerId: string; name: string | null; whatsapp: string | null; items: OrderDetail["order_items"] }
+  >();
+  for (const item of items) {
+    if (!item.seller_id) continue;
+    const g = groups.get(item.seller_id) ?? {
+      sellerId: item.seller_id,
+      name: item.seller_name,
+      whatsapp: item.seller_whatsapp,
+      items: [],
+    };
+    g.items.push(item);
+    groups.set(item.seller_id, g);
+  }
+  return [...groups.values()];
 }

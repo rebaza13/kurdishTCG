@@ -1,6 +1,7 @@
 import "server-only";
 import { getSupabaseAdmin } from "@/lib/supabase/admin";
 import { notifyNewOrder } from "@/lib/telegram";
+import { notifySellersOfOrder } from "@/lib/whatsapp";
 import { getFibPaymentStatus, type FibPaymentStatusValue } from "@/lib/fib";
 
 const STATUS_MAP: Record<FibPaymentStatusValue, string> = {
@@ -59,7 +60,7 @@ export async function syncFibPaymentStatus(paymentId: string) {
   // Online orders only reach the shop once they are actually paid. Only the
   // call that flips pending → paid notifies, so webhook + polling don't double-send.
   if (paymentStatus === "paid" && order.payment_status !== "paid") {
-    await notifyNewOrder(order.id);
+    await Promise.all([notifyNewOrder(order.id), notifySellersOfOrder(order.id)]);
   }
 
   return { order: updated, fibStatus };

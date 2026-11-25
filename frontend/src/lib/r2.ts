@@ -1,5 +1,5 @@
 import "server-only";
-import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, DeleteObjectsCommand } from "@aws-sdk/client-s3";
 
 /** Folders the dashboard may upload into (prefixes inside the R2 bucket). */
 export const R2_FOLDERS = ["packs", "cards", "franchises"] as const;
@@ -42,4 +42,30 @@ export async function putPublicImage(
     })
   );
   return `${publicUrl.replace(/\/$/, "")}/${key}`;
+}
+
+/**
+ * Delete objects by their public URL. Only URLs inside our bucket's public
+ * base AND under `onlyPrefix` are touched, so a listing can never delete the
+ * shop's own product photos. Never throws — a failed cleanup just leaves files.
+ */
+export async function deletePublicImages(urls: string[], onlyPrefix: string): Promise<void> {
+  const bucket = process.env.R2_BUCKET;
+  const publicUrl = process.env.R2_PUBLIC_URL?.replace(/\/$/, "");
+  if (!bucket || !publicUrl) return;
+  const keys = [...new Set(urls)]
+    .filter((u) => u.startsWith(`${publicUrl}/`))
+    .map((u) => u.slice(publicUrl.length + 1))
+    .filter((k) => k.startsWith(onlyPrefix) && !k.includes(".."));
+  if (keys.length === 0) return;
+  try {
+    await getClient().send(
+      new DeleteObjectsCommand({
+        Bucket: bucket,
+        Delete: { Objects: keys.map((Key) => ({ Key })), Quiet: true },
+      })
+    );
+  } catch (err) {
+    console.error("[r2] delete failed:", err);
+  }
 }

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import type { AuthError } from "@supabase/supabase-js";
-import { ChevronRight, Loader2, LogOut, Package } from "lucide-react";
+import { ChevronRight, Loader2, LogOut, Package, Store } from "lucide-react";
 import { Link } from "@/i18n/navigation";
 import { Button } from "@/components/ui/button";
 import { PriceTag } from "@/components/price-tag";
@@ -24,6 +24,7 @@ type OrderRow = {
     id: string;
     product_name: string;
     quantity: number;
+    product_image: string | null;
     products: { image: string | null } | null;
   }[];
 };
@@ -41,8 +42,8 @@ function OrderThumbs({ items }: { items: OrderRow["order_items"] }) {
           key={item.id}
           className="relative h-14 w-11 overflow-hidden rounded-[var(--radius-xs)] border-2 border-[var(--color-bg)] bg-[var(--color-neutral-200)]"
         >
-          {item.products?.image ? (
-            <Image src={item.products.image} alt="" fill sizes="44px" className="object-cover" />
+          {item.products?.image || item.product_image ? (
+            <Image src={(item.products?.image || item.product_image)!} alt="" fill sizes="44px" className="object-cover" />
           ) : (
             <Package className="absolute inset-0 m-auto size-4 text-[var(--color-text-muted)]" aria-hidden />
           )}
@@ -125,7 +126,7 @@ export default function AccountPage() {
     getSupabaseClient()
       .from("orders")
       .select(
-        "id, status, payment_method, payment_status, total, created_at, order_items(id, product_name, quantity, products(image))"
+        "id, status, payment_method, payment_status, total, created_at, order_items(id, product_name, quantity, product_image, products(image))"
       )
       .order("created_at", { ascending: false })
       .then(({ data }) => {
@@ -224,6 +225,19 @@ export default function AccountPage() {
             {t("signOut")}
           </Button>
         </div>
+
+        <section className="flex flex-wrap items-center justify-between gap-4 rounded-[var(--radius-lg)] border-[length:var(--border-width)] border-[var(--color-border)] bg-[var(--color-surface)] p-5">
+          <div className="min-w-0">
+            <h2 className="text-base">{t("sellerSectionTitle")}</h2>
+            <p className="text-sm text-[var(--color-text-muted)]">{t("sellerSectionBody")}</p>
+          </div>
+          <Button asChild variant="primary" size="sm">
+            <Link href="/sell">
+              <Store className="size-3.5" />
+              {t("openSellerSpace")}
+            </Link>
+          </Button>
+        </section>
 
         <section className="flex flex-col gap-4">
           <h2 className="text-lg">{t("orderHistoryTitle")}</h2>

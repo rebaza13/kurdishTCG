@@ -22,3 +22,9 @@ export function normalizeIraqiMobile(input: string): string | null {
   const match = /^(?:(?:\+|00)964|0)?(7\d{9})$/.exec(digits);
   return match ? `0${match[1]}` : null;
 }
+
+/** 07xxxxxxxxx → https://wa.me/9647xxxxxxxxx?text=… (opens a WhatsApp chat). */
+export function whatsappLink(localPhone: string, text: string): string {
+  const intl = localPhone.startsWith("0") ? `964${localPhone.slice(1)}` : localPhone;
+  return `https://wa.me/${intl}?text=${encodeURIComponent(text)}`;
+}
